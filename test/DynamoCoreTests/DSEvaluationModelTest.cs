@@ -401,7 +401,7 @@ namespace Dynamo.Tests
         {
             // MAGN-7463
             RunModel(@"core\dsevaluation\CBN_TypedIdentifier01.dyn");
-            AssertPreviewValue("9c422c81-821f-456e-9965-4aea6afe81f9", 1);
+            AssertPreviewValue("1472b79b-59b0-40ab-ab0e-3504fbc7be83", 1);
         }
 
         [Test]
@@ -619,7 +619,7 @@ namespace Dynamo.Tests
         public void CBN_Geometry()
         {
             RunModel(@"core\dsevaluation\CBN_Geometry.dyn");
-            AssertPreviewValue("9c51f2d5-a9f2-4825-bda6-f062e69efc46", 5.00000);
+            AssertPreviewValue("a23b89fc-f219-46ca-ab7a-5a3f0ee93ba4", 5.00000);
         }
         [Test]
         [Category("RegressionTests")]
@@ -807,7 +807,7 @@ namespace Dynamo.Tests
             // http://adsk-oss.myjetbrains.com/youtrack/issue/MAGN-5236
 
             RunModel(@"core\dsevaluation\createCube_codeBlockNode.dyn");
-            AssertPreviewValue("3669d05c-c741-44f9-87ab-8961e7f5f112", 150);
+            AssertPreviewValue("8187805a-cc0d-4220-8595-4ee38bbee079", 150);
             var guid = Guid.Parse("3669d05c-c741-44f9-87ab-8961e7f5f112");
             var node = CurrentDynamoModel.CurrentWorkspace.Nodes.FirstOrDefault(n => n.GUID == guid);
             Assert.IsTrue(node.State != ElementState.Warning);
@@ -952,9 +952,9 @@ namespace Dynamo.Tests
             var node =
                 new DSFunction(CurrentDynamoModel.LibraryServices.GetFunctionDescriptor("Autodesk.DesignScript.Geometry.Point.ByCoordinates@double,double"));
             CurrentDynamoModel.ExecuteCommand(new Dynamo.Models.DynamoModel.CreateNodeCommand(node, 0, 0, true, false));
-            Assert.IsTrue(node.InPorts[0].ToolTipContent.Equals("double\nDefault value : 0"));
+            Assert.IsTrue(node.InPorts[0].ToolTip.Equals("double\nDefault value : 0"));
             node.InPorts[0].UsingDefaultValue = false;
-            Assert.IsTrue(node.InPorts[0].ToolTipContent.Equals("double\nDefault value : 0 (disabled)"));
+            Assert.IsTrue(node.InPorts[0].ToolTip.Equals("double\nDefault value : 0 (disabled)"));
         }
         [Test]
         public void Reorder_7573()
@@ -1093,6 +1093,29 @@ namespace Dynamo.Tests
             OpenModel(dynFilePath);
             AssertPreviewValue("a0227846-04ca-4323-9074-2bd1ea9ac8cf", new object[] { 1, 2, 3 });
             AssertPreviewValue("ada2d384-626f-4240-b251-7df6e395f3f2", new object[] {"Bob", "Sally", "Pat" });
+        }
+
+        [Test]
+        public void TestDictionaryDefinition2()
+        {
+            // Regression test for https://adsk-oss.myjetbrains.com/youtrack/issue/MAGN-10382
+            // To test that variable could still be properly renamed.
+            var dynFilePath = Path.Combine(TestDirectory, @"core\dsevaluation\define_dictionary2.dyn");
+            OpenModel(dynFilePath);
+            AssertPreviewValue("231d235b-0d7f-4bd8-b19a-5dda561aea3d", new object[] { 1024 });
+            AssertPreviewValue("372c04aa-4088-4224-a922-d34fc2869fc1", new object[] { "qux" });
+            AssertPreviewValue("e7bf0921-cf77-4f37-8336-8aa9c56b22a6", new object[] { "qux" });
+            AssertPreviewValue("756497b4-4f7a-4ae3-9e5c-de5f69762d16", new object[] { 1024 });
+        }
+
+        [Test]
+        public void TestMAGN9507()
+        {
+            // x = {1, 2, 3};
+            // x = Count(x);
+            var dynFilePath = Path.Combine(TestDirectory, @"core\dsevaluation\MAGN-9507.dyn");
+            OpenModel(dynFilePath);
+            AssertPreviewValue("3bf992eb-ecc9-4fcc-a90b-9b1ee7e925e9", 3);
         }
     }
 

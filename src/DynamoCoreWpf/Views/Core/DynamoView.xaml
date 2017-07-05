@@ -65,6 +65,9 @@
         <KeyBinding Key="L"
                     Modifiers="Control"
                     Command="{Binding Path=DataContext.GraphAutoLayoutCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:DynamoView}}}" />
+        <KeyBinding Key="I"
+                    Modifiers="Control"
+                    Command="{Binding Path=DataContext.BackgroundPreviewViewModel.ToggleIsolationModeCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:DynamoView}}}" />
         <KeyBinding Key="Tab"
                     Command="{Binding Path=DataContext.SelectNeighborsCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type controls:DynamoView}}}" />
 
@@ -177,7 +180,8 @@
     <Grid Name="mainGrid"
           FocusManager.IsFocusScope="True"
           PreviewMouseDown="Window_PreviewMouseDown"
-          PreviewMouseUp="Window_PreviewMouseUp">
+          PreviewMouseUp="Window_PreviewMouseUp"
+          PreviewMouseLeftButtonUp="Window_PreviewMouseLeftButtonUp">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -453,7 +457,7 @@
                                   Name="ungroupGroup"
                                   InputGestureText="Ctrl + U" />
                         <MenuItem Focusable="False"                                
-                                  Header="{x:Static p:Resources.DynamoViewEditMenuCreateNodeFromSelection}"
+                                  Header="{x:Static p:Resources.DynamoViewEditMenuCreateCustomNode}"
                                   Command="{Binding Path=NodeFromSelectionCommand}"
                                   Name="nodeFromSelection"
                                   InputGestureText="Ctrl + D" />
@@ -640,7 +644,8 @@
                     <MenuItem Header="{x:Static p:Resources.DynamoViewSettingMenu}"
                               Name="SettingsMenu"
                               Focusable="False"
-                              IsEnabled="True">
+                              IsEnabled="True"
+                              SubmenuOpened="OnSettingsSubMenuOpened">
                         <MenuItem Header="{x:Static p:Resources.DynamoViewSettingMenuEnableSummaryReporting}"
                                   Name="ToggleIsAnalyticsReportingApprovedCommand"
                                   Command="{Binding Path=ToggleIsAnalyticsReportingApprovedCommand, Source={x:Static service:UsageReportingManager.Instance} }"
@@ -655,6 +660,7 @@
                                   IsChecked="{Binding Path=IsUsageReportingApproved, Mode=OneWay, Source={x:Static service:UsageReportingManager.Instance} }"
                                   ToolTip="{x:Static p:Resources.DynamoViewSettingMenuEnableDataReportingTooltip}"
                                   Focusable="False" />
+                        <Separator />
                         <MenuItem Focusable="False" 
                                   Name="ShowNodeExecution" 
                                   IsCheckable="True" 
@@ -713,6 +719,16 @@
                             </StackPanel>
                         </MenuItem>
                         <MenuItem Focusable="False"
+                                  Name="ChangeScaleFactorMenu"
+                                  Header="{x:Static p:Resources.DynamoViewSettingsMenuChangeScaleFactor}"
+                                  Command="{Binding ChangeScaleFactorCommand}" />
+                        <Separator />
+                        <MenuItem Focusable="False"
+                                  IsCheckable="True"
+                                  IsChecked="{Binding Path=BackgroundPreviewViewModel.IsolationMode, Mode=TwoWay}"
+                                  Header="{x:Static p:Resources.DynamoViewSettingsMenuIsolationMode}"
+                                  InputGestureText="Ctrl + I"/>
+                        <MenuItem Focusable="False"
                                   IsCheckable="True"
                                   IsChecked="{Binding Path=RenderPackageFactoryViewModel.ShowEdges, Mode=TwoWay}"
                                   Header="{x:Static p:Resources.DynamoViewSettingsMenuShowEdges}"></MenuItem>
@@ -750,8 +766,15 @@
                                   IsEnabled="{Binding Path=HomeSpaceViewModel.RunSettingsViewModel.RunEnabled}">
                             <MenuItem.Icon>
                                 <Image Source="/DynamoCoreWpf;component/UI/Images/OpenSelectedItemHS.png"
-                                       Width="14"
-                                       Height="14" />
+                                       Width="14" Height="14" />
+                            </MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem Focusable="False"
+                                  Header="{x:Static p:Resources.DynamoViewHelpDictionary}"
+                                  Command="{Binding GoToDictionaryCommand}">
+                            <MenuItem.Icon>
+                                <Image Source="/DynamoCoreWpf;component/UI/Images/icon-dictionary-small.png"
+                                           Width="13" Height="14" />
                             </MenuItem.Icon>
                         </MenuItem>
                         <MenuItem Header="{x:Static p:Resources.DynamoViewHelpMenuReportBug}"

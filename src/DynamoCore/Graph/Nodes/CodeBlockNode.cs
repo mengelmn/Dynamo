@@ -19,6 +19,7 @@ using ProtoCore.Utils;
 using ArrayNode = ProtoCore.AST.AssociativeAST.ArrayNode;
 using Node = ProtoCore.AST.Node;
 using Operator = ProtoCore.DSASM.Operator;
+using Newtonsoft.Json;
 
 namespace Dynamo.Graph.Nodes
 {
@@ -44,8 +45,21 @@ namespace Dynamo.Graph.Nodes
         private bool shouldFocus = true;
 
         /// <summary>
+        /// The NodeType property provides a name which maps to the 
+        /// server type for the node. This property should only be
+        /// used for serialization. 
+        /// </summary>
+        public override string NodeType
+        {
+            get
+            {
+                return "CodeBlockNode";
+            }
+        }
+        /// <summary>
         ///     Indicates whether code block should not be in focus upon undo/redo actions on node
         /// </summary>
+        [JsonIgnore]
         public bool ShouldFocus
         {
             get { return shouldFocus; }
@@ -55,6 +69,7 @@ namespace Dynamo.Graph.Nodes
         /// <summary>
         ///     Returns <see cref="ElementResolver"/> for CodeBlock node
         /// </summary>
+        [JsonIgnore]
         public ElementResolver ElementResolver { get; set; }
 
         private struct Formatting
@@ -83,20 +98,21 @@ namespace Dynamo.Graph.Nodes
             ArgumentLacing = LacingStrategy.Disabled;
             this.libraryServices = libraryServices;
             this.ElementResolver = new ElementResolver();
+            ProcessCodeDirect();
         }
 
         /// <summary>
         ///     Initilizes a new instance of the <see cref="CodeBlockNodeModel"/> class
         /// </summary>
-        /// <param name="userCode">Code block content</param>
-        /// <param name="xPos">X coordinate of the code block</param>
-        /// <param name="yPos">Y coordinate of the code block</param>
+        /// <param name="code">Code block content</param>
+        /// <param name="x">X coordinate of the code block</param>
+        /// <param name="y">Y coordinate of the code block</param>
         /// <param name="libraryServices"><see cref="LibraryServices"/> object to manage
         ///  builtin libraries as well as imported libraries</param>
         /// <param name="resolver">Responsible for resolving 
         /// a partial class name to its fully resolved name</param>
-        public CodeBlockNodeModel(string userCode, double xPos, double yPos, LibraryServices libraryServices, ElementResolver resolver)
-            : this(userCode, Guid.NewGuid(), xPos, yPos, libraryServices, resolver) { }
+        public CodeBlockNodeModel(string code, double x, double y, LibraryServices libraryServices, ElementResolver resolver)
+            : this(code, Guid.NewGuid(), x, y, libraryServices, resolver) { }
 
         /// <summary>
         ///     Initilizes a new instance of the <see cref="CodeBlockNodeModel"/> class
@@ -276,6 +292,7 @@ namespace Dynamo.Graph.Nodes
         /// <summary>
         /// Temporary variables that generated in code.
         /// </summary>
+        [JsonIgnore]
         public IEnumerable<string> TempVariables
         {
             get { return tempVariables; }
@@ -284,6 +301,7 @@ namespace Dynamo.Graph.Nodes
         /// <summary>
         /// Code statement of CBN
         /// </summary>
+        [JsonIgnore]
         public IEnumerable<Statement> CodeStatements
         {
             get { return codeStatements; }
@@ -292,6 +310,19 @@ namespace Dynamo.Graph.Nodes
         #endregion
 
         #region Protected Methods
+
+        /// <summary>
+        /// If a CBN is in Error state, it will have no code but will have output ports
+        /// from the last successful compilation if any. 
+        /// In this case it should continue to be in Error state.
+        /// </summary>
+        protected override void SetNodeStateBasedOnConnectionAndDefaults()
+        {
+            if(!CodeStatements.Any() && OutPorts.Any())
+                State = ElementState.Error;
+            else
+                base.SetNodeStateBasedOnConnectionAndDefaults();
+        }
 
         protected override bool UpdateValueCore(UpdateValueParams updateValueParams)
         {
@@ -317,6 +348,21 @@ namespace Dynamo.Graph.Nodes
             helper.SetAttribute("CodeText", code);
             helper.SetAttribute("ShouldFocus", shouldFocus);
 
+            // add input port names to port info
+            var childNodes = element.ChildNodes.Cast<XmlElement>().ToList();
+            var inPorts = childNodes.Where(node => node.Name.Equals("PortInfo"));
+            foreach (var tuple in inPorts.Zip(InPorts, Tuple.Create))
+            {
+                tuple.Item1.SetAttribute("name", tuple.Item2.PortName);
+            }
+
+            //write output port line number info
+            foreach (var t in OutPorts)
+            {
+                XmlElement outportInfo = element.OwnerDocument.CreateElement("OutPortInfo");
+                outportInfo.SetAttribute("LineIndex", t.LineIndex.ToString(CultureInfo.InvariantCulture));
+                element.AppendChild(outportInfo);
+            }
         }
 
         protected override void DeserializeCore(XmlElement nodeElement, SaveContext context)
@@ -325,6 +371,31 @@ namespace Dynamo.Graph.Nodes
             var helper = new XmlElementHelper(nodeElement);
             shouldFocus = helper.ReadBoolean("ShouldFocus");
             code = helper.ReadString("CodeText");
+
+            var childNodes = nodeElement.ChildNodes.Cast<XmlElement>().ToList();
+            var inputPortHelpers =
+                childNodes.Where(node => node.Name.Equals("PortInfo")).Select(x => new XmlElementHelper(x));
+
+            // read and set input port info
+            inputPortNames =
+                inputPortHelpers.Select(x => x.ReadString("name", String.Empty))
+                    .Where(y => !string.IsNullOrEmpty(y))
+                    .ToList();
+            SetInputPorts();
+
+            // read and set ouput port info
+            var outputPortHelpers =
+                childNodes.Where(node => node.Name.Equals("OutPortInfo")).Select(x => new XmlElementHelper(x));
+            var lineNumbers = outputPortHelpers.Select(x => x.ReadInteger("LineIndex")).ToList();
+            foreach (var line in lineNumbers)
+            {
+                var tooltip = Formatting.TOOL_TIP_FOR_TEMP_VARIABLE;
+                OutPorts.Add(new PortModel(PortType.Output, this, new PortData(string.Empty, tooltip)
+                {
+                    LineIndex = line, // Logical line index.
+                    Height = Configurations.CodeBlockPortHeightInPixels
+                }));
+            }
 
             ProcessCodeDirect();
         }
@@ -569,8 +640,6 @@ namespace Dynamo.Graph.Nodes
                             // Create a statement variable from the generated nodes
                             codeStatements.Add(Statement.CreateInstance(parsedNode));
                         }
-
-                        SetPreviewVariable(parseParam.ParsedNodes);
                     }
                 }
 
@@ -605,10 +674,15 @@ namespace Dynamo.Graph.Nodes
                 {
                     inputIdentifiers = new List<string>();
                     inputPortNames = new List<string>();
+
+                    var definedVariables = new HashSet<string>(CodeBlockUtils.GetStatementVariables(codeStatements, true).SelectMany(s => s));
                     foreach (var kvp in parseParam.UnboundIdentifiers)
                     {
-                        inputIdentifiers.Add(kvp.Value);
-                        inputPortNames.Add(kvp.Key);
+                        if (!definedVariables.Contains(kvp.Value))
+                        {
+                            inputIdentifiers.Add(kvp.Value);
+                            inputPortNames.Add(kvp.Key);
+                        }
                     }
                 }
                 else
@@ -616,6 +690,13 @@ namespace Dynamo.Graph.Nodes
                     inputIdentifiers.Clear();
                     inputPortNames.Clear();
                 }
+
+                // Set preview variable after gathering input identifiers. As a variable
+                // will be renamed only if it is not the preview variable and is either a
+                // variable defined in code block node or in on the right hand side of 
+                // expression as an input variable, a variable may not be renamed properly
+                // if SetPreviewVariable() is called before gathering input identifiers.
+                SetPreviewVariable(parseParam.ParsedNodes);
             }
             catch (Exception e)
             {
@@ -680,8 +761,7 @@ namespace Dynamo.Graph.Nodes
         /// 
         private void CreateInputOutputPorts()
         {
-            InPortData.Clear();
-            OutPortData.Clear();
+            
             if ((codeStatements == null || (codeStatements.Count == 0))
                 && (inputIdentifiers == null || (inputIdentifiers.Count == 0)))
             {
@@ -697,10 +777,13 @@ namespace Dynamo.Graph.Nodes
 
         private void SetInputPorts()
         {
+            //Clear out all the input port models
+            InPorts.Clear();
+
             // Generate input port data list from the unbound identifiers.
             var inportData = CodeBlockUtils.GenerateInputPortData(inputPortNames);
             foreach (var portData in inportData)
-                InPortData.Add(portData);
+                InPorts.Add(new PortModel(PortType.Input, this, portData));
         }
 
         private void SetOutputPorts()
@@ -709,6 +792,9 @@ namespace Dynamo.Graph.Nodes
 
             if (allDefs.Any() == false)
                 return;
+            
+            //Clear out all the output port models
+            OutPorts.Clear();
 
             foreach (var def in allDefs)
             {
@@ -716,11 +802,11 @@ namespace Dynamo.Graph.Nodes
                 if (tempVariables.Contains(def.Key))
                     tooltip = Formatting.TOOL_TIP_FOR_TEMP_VARIABLE;
 
-                OutPortData.Add(new PortData(string.Empty, tooltip)
+                OutPorts.Add(new PortModel(PortType.Output, this, new PortData(string.Empty, tooltip)
                 {
                     LineIndex = def.Value - 1, // Logical line index.
                     Height = Configurations.CodeBlockPortHeightInPixels
-                });
+                }));
             }
         }
 
@@ -735,7 +821,7 @@ namespace Dynamo.Graph.Nodes
             //----------------------------Inputs---------------------------------
             foreach (var portModel in InPorts)
             {
-                var portName = portModel.ToolTipContent;
+                var portName = portModel.ToolTip;
                 if (portModel.Connectors.Count != 0)
                 {
                     inportConnections.Add(portName, new List<PortModel>());
@@ -751,18 +837,13 @@ namespace Dynamo.Graph.Nodes
             //Delete the connectors
             foreach (PortModel inport in InPorts)
                 inport.DestroyConnectors();
-
-            //Clear out all the port models
-            for (int i = InPorts.Count - 1; i >= 0; i--)
-                InPorts.RemoveAt(i);
-
-
+            
             //----------------------------Outputs---------------------------------
             for (int i = 0; i < OutPorts.Count; i++)
             {
                 PortModel portModel = OutPorts[i];
-                string portName = portModel.ToolTipContent;
-                if (portModel.ToolTipContent.Equals(Formatting.TOOL_TIP_FOR_TEMP_VARIABLE))
+                string portName = portModel.ToolTip;
+                if (portModel.ToolTip.Equals(Formatting.TOOL_TIP_FOR_TEMP_VARIABLE))
                     portName += i.ToString(CultureInfo.InvariantCulture);
                 if (portModel.Connectors.Count != 0)
                 {
@@ -779,10 +860,7 @@ namespace Dynamo.Graph.Nodes
             //Delete the connectors
             foreach (PortModel outport in OutPorts)
                 outport.DestroyConnectors();
-
-            //Clear out all the port models
-            for (int i = OutPorts.Count - 1; i >= 0; i--)
-                OutPorts.RemoveAt(i);
+            
         }
 
         /// <summary>
@@ -795,9 +873,9 @@ namespace Dynamo.Graph.Nodes
         {
             //----------------------------Inputs---------------------------------
             /* Input Port connections are matched only if the name is the same */
-            for (int i = 0; i < InPortData.Count; i++)
+            for (int i = 0; i < InPorts.Count; i++)
             {
-                string varName = InPortData[i].ToolTipString;
+                string varName = InPorts[i].ToolTip;
                 if (inportConnections.Contains(varName))
                 {
                     if (inportConnections[varName] != null)
@@ -826,9 +904,9 @@ namespace Dynamo.Graph.Nodes
              *   the new ports, it also finds the ports that didnt exist before
              */
             List<int> undefinedIndices = new List<int>();
-            for (int i = 0; i < OutPortData.Count; i++)
+            for (int i = 0; i < OutPorts.Count; i++)
             {
-                string varName = OutPortData[i].ToolTipString;
+                string varName = OutPorts[i].ToolTip;
                 if (outportConnections.Contains(varName))
                 {
                     if (outportConnections[varName] != null)
@@ -1231,7 +1309,13 @@ namespace Dynamo.Graph.Nodes
             if(leftNode is TypedIdentifierNode)
                 return new IdentifierNode(leftNode as IdentifierNode);
             if (leftNode is IdentifierNode)
-                return leftNode as IdentifierNode;
+            {
+                var identiferNode = leftNode as IdentifierNode;
+                if (identiferNode.ArrayDimensions != null)
+                    return null;
+                else
+                    return identiferNode;
+            }
             else if (leftNode is IdentifierListNode || leftNode is FunctionCallNode)
                 return null;
             else
@@ -1299,16 +1383,6 @@ namespace Dynamo.Graph.Nodes
                     if (assignedVar != null)
                     {
                         definedVariables.Add(new Variable(assignedVar));
-
-                        // Handle case "a;" which is compiled to "t6BBA4B28C5E54CF89F300D510499A00E_x = a;"
-                        if (assignedVar.Name.StartsWith(ProtoCore.DSASM.Constants.kTempVarForNonAssignment) && binaryExpression.Optr == Operator.assign)
-                        {
-                            var rightNode = binaryExpression.RightNode as IdentifierNode;
-                            if (rightNode != null)
-                            {
-                                definedVariables.Add(new Variable(rightNode));
-                            }
-                        }
                     }
                     parsedNode = (parsedNode as BinaryExpressionNode).RightNode;
                 }
@@ -1318,12 +1392,6 @@ namespace Dynamo.Graph.Nodes
                 GetReferencedVariables(parsedNode, refVariableList);
                 referencedVariables = refVariableList;
             }
-            else if (parsedNode is FunctionDefinitionNode)
-            {
-                // Handle function definitions in CBN
-            }
-            else
-                throw new ArgumentException("Must be func def or assignment");
 
             Variable.SetCorrectColumn(referencedVariables, CurrentType, StartLine);
         }
@@ -1385,7 +1453,7 @@ namespace Dynamo.Graph.Nodes
             if (identNode == null)
                 throw new ArgumentNullException();
 
-            Name = identNode.ToString();
+            Name = identNode.Name;
             Row = identNode.line;
             StartColumn = identNode.col;
         }

@@ -80,7 +80,7 @@ namespace CoreNodeModels
 
         protected DSDropDownBase(string outputName)
         {
-            OutPortData.Add(new PortData(outputName, string.Format(Resources.DropDownPortDataResultToolTip, outputName)));
+            OutPorts.Add(new PortModel(PortType.Output, this, new PortData(outputName, string.Format(Resources.DropDownPortDataResultToolTip, outputName))));
             RegisterAllPorts();
             PopulateItems();
         }
@@ -110,6 +110,22 @@ namespace CoreNodeModels
             {
                 Warning(Dynamo.Properties.Resources.NothingIsSelectedWarning);
             }
+        }
+
+        protected override bool UpdateValueCore(UpdateValueParams updateValueParams)
+        {
+            string name = updateValueParams.PropertyName;
+            string value = updateValueParams.PropertyValue;
+
+            if (name == "Value" && value != null)
+            {
+                selectedIndex = ParseSelectedIndex(value, Items);
+                if (selectedIndex < 0)
+                    Warning(Dynamo.Properties.Resources.NothingIsSelectedWarning);
+                return true; // UpdateValueCore handled.
+            }
+
+            return base.UpdateValueCore(updateValueParams);
         }
 
         protected virtual int ParseSelectedIndex(string index, IList<DynamoDropDownItem> items)

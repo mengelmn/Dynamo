@@ -70,7 +70,7 @@ namespace Dynamo.Tests
         }
 
         [Test]
-        [Category("UnitTest")]
+        [Category("UnitTests")]
         public void CanSavePinState()
         {
             var model = CurrentDynamoModel;
@@ -314,7 +314,7 @@ namespace Dynamo.Tests
             var numberNode1 = nodes[0];
             DoubleInput numberNode2 = nodes[1] as DoubleInput;
             
-            model.CurrentWorkspace.RemoveNode(numberNode1);
+            model.CurrentWorkspace.RemoveAndDisposeNode(numberNode1);
 
             //now restore state to state 1
             Assert.DoesNotThrow(() =>
@@ -337,15 +337,16 @@ namespace Dynamo.Tests
 
               //save these states
               var newPath = GetNewFileNameOnTempPath("dyn");
-              var res = model.CurrentWorkspace.SaveAs(newPath, model.EngineController.LiveRunnerRuntimeCore);
+              var res = model.SaveWorkspace(newPath, model.CurrentWorkspace);
 
               Assert.IsTrue(res);
               Assert.IsTrue(File.Exists(newPath));
          
 
           }
-        
-        [Test]
+
+        // TODO: Enable when Open() is expanded to open Json
+        [Test, Ignore]
         public void CanSaveAndLoadStateWithMissingNodesWithoutLosingThem()
         {
             var model = CurrentDynamoModel;
@@ -359,11 +360,11 @@ namespace Dynamo.Tests
 
             //now delete a node that is included in the state
             var num1 = model.CurrentWorkspace.Nodes.OfType<DoubleInput>().First();
-            model.CurrentWorkspace.RemoveNode(num1);
+            model.CurrentWorkspace.RemoveAndDisposeNode(num1);
             //then save this dyn
             
             var newPath = GetNewFileNameOnTempPath("dyn");
-            var res = model.CurrentWorkspace.SaveAs(newPath, model.EngineController.LiveRunnerRuntimeCore);
+            var res = model.SaveWorkspace(newPath, model.CurrentWorkspace);
 
             Assert.IsTrue(res);
             Assert.IsTrue(File.Exists(newPath));

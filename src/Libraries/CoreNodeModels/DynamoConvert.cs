@@ -6,6 +6,8 @@ using ProtoCore.AST.AssociativeAST;
 using System.Xml;
 using Dynamo.Graph;
 using Dynamo.Graph.Nodes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace CoreNodeModels
 {
@@ -13,6 +15,7 @@ namespace CoreNodeModels
     [NodeName("Convert Between Units")]
     [NodeDescription("ConversionNodeDescription", typeof(Properties.Resources))]
     [NodeSearchTags("DynamoConvertSearchTags", typeof(Properties.Resources))]
+    [OutPortTypes("number")]
     [IsDesignScriptCompatible]
     [AlsoKnownAs("DSCoreNodesUI.DynamoConvert")]
     public class DynamoConvert : NodeModel
@@ -25,6 +28,20 @@ namespace CoreNodeModels
         private List<ConversionUnit> selectedFromConversionSource;
         private List<ConversionUnit> selectedToConversionSource;
 
+        /// <summary>
+        /// The NodeType property provides a name which maps to the
+        /// server type for the node. This property should only be
+        /// used for serialization.
+        /// </summary>
+        public override string NodeType
+        {
+            get
+            {
+                return "ConvertBetweenUnitsNode";
+            }
+        }
+
+        [JsonIgnore]
         public List<ConversionUnit> SelectedFromConversionSource
         {
             get { return selectedFromConversionSource; }
@@ -35,6 +52,7 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonIgnore]
         public List<ConversionUnit> SelectedToConversionSource
         {
             get { return selectedToConversionSource; }
@@ -45,12 +63,13 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonProperty("MeasurementType"), JsonConverter(typeof(StringEnumConverter))]
         public ConversionMetricUnit SelectedMetricConversion
         {
             get { return selectedMetricConversion; }
             set
             {
-                selectedMetricConversion = (ConversionMetricUnit)Enum.Parse(typeof(ConversionMetricUnit), value.ToString()); ;               
+                selectedMetricConversion = (ConversionMetricUnit)Enum.Parse(typeof(ConversionMetricUnit), value.ToString()); ;
                 SelectedFromConversionSource =
                     Conversions.ConversionMetricLookup[(ConversionMetricUnit)Enum.Parse(typeof(ConversionMetricUnit),value.ToString())];
                 SelectedToConversionSource =
@@ -62,6 +81,7 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonProperty("FromConversion"), JsonConverter(typeof(StringEnumConverter))]
         public ConversionUnit SelectedFromConversion
         {
             get { return selectedFromConversion; }
@@ -73,6 +93,7 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonProperty("ToConversion"), JsonConverter(typeof(StringEnumConverter))]
         public ConversionUnit SelectedToConversion
         {
             get { return selectedToConversion; }
@@ -84,6 +105,7 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonIgnore]
         public bool IsSelectionFromBoxEnabled
         {
             get { return isSelectionFromBoxEnabled; }
@@ -94,6 +116,7 @@ namespace CoreNodeModels
             }
         }
 
+        [JsonIgnore]
         public string SelectionFromBoxToolTip
         {
             get { return selectionFromBoxToolTip; }
@@ -103,33 +126,41 @@ namespace CoreNodeModels
                 RaisePropertyChanged("SelectionFromBoxToolTip");
             }
         }
-      
+
+        [JsonConstructor]
+        private DynamoConvert(IEnumerable<PortModel> inPorts, IEnumerable<PortModel> outPorts) : base(inPorts, outPorts)
+        {
+            SelectedMetricConversion = ConversionMetricUnit.Length;
+            ShouldDisplayPreviewCore = true;
+            IsSelectionFromBoxEnabled = true;
+        }
+
         public DynamoConvert()
-        {           
-            SelectedMetricConversion = ConversionMetricUnit.Length;  
+        {
+            SelectedMetricConversion = ConversionMetricUnit.Length;
             AssociativeNode defaultNode = new DoubleNode(0.0);
-            InPortData.Add(new PortData("", Properties.Resources.UnitNodeFromPortTooltip, defaultNode));
-            OutPortData.Add(new PortData("", Properties.Resources.UnitNodeToPortToolTip));
+            InPorts.Add(new PortModel(PortType.Input, this, new PortData("", Properties.Resources.UnitNodeFromPortTooltip, defaultNode)));
+            OutPorts.Add(new PortModel(PortType.Output, this, new PortData("", Properties.Resources.UnitNodeToPortToolTip)));
 
             ShouldDisplayPreviewCore = true;
             IsSelectionFromBoxEnabled = true;
             RegisterAllPorts();
         }
-      
+
         public override IEnumerable<AssociativeNode> BuildOutputAst(
             List<AssociativeNode> inputAstNodes)
-        {       
+        {
             var conversionToNode =
-                AstFactory.BuildDoubleNode(Conversions.ConversionDictionary[(ConversionUnit) SelectedToConversion]);
+                AstFactory.BuildDoubleNode(Conversions.ConversionDictionary[SelectedToConversion]);
 
             var conversionFromNode =
-                AstFactory.BuildDoubleNode(Conversions.ConversionDictionary[(ConversionUnit) SelectedFromConversion]);
+                AstFactory.BuildDoubleNode(Conversions.ConversionDictionary[SelectedFromConversion]);
             AssociativeNode node = null;
-           
+
             node = AstFactory.BuildFunctionCall(
                         new Func<double, double, double, double>(Conversions.ConvertUnitTypes),
                         new List<AssociativeNode> { inputAstNodes[0], conversionFromNode, conversionToNode });
-          
+
             return new[] { AstFactory.BuildAssignment(GetAstIdentifierForOutputIndex(0), node) };
         }
 
@@ -196,6 +227,6 @@ namespace CoreNodeModels
         }
 
         #endregion
-    }      
+    }
 }
 

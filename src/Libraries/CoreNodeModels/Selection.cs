@@ -104,7 +104,7 @@ namespace CoreNodeModels
             this.selectionObjectType = selectionObjectType;
 
             string portName = GetOutputPortName();
-            OutPortData.Add(new PortData(portName, Resources.SelectionPortDataResultToolTip));
+            OutPorts.Add(new PortModel(PortType.Output, this, new PortData(portName, Resources.SelectionPortDataResultToolTip)));
 
             RegisterAllPorts();
 
@@ -112,7 +112,7 @@ namespace CoreNodeModels
 
             State = ElementState.Warning; 
             
-            ShouldDisplayPreviewCore = false;
+            ShouldDisplayPreviewCore = true;
         }
 
         #endregion
@@ -224,6 +224,11 @@ namespace CoreNodeModels
                     .Select(subNode => subNode.Attributes[0].Value)
                     .ToList();
 
+            ResetSelectionFromIds(savedUuids);
+        }
+
+        private void ResetSelectionFromIds(List<string> savedUuids)
+        {
             var loadedSelection =
                     savedUuids.Select(GetModelObjectFromIdentifer)
                         // ReSharper disable once CompareNonConstrainedGenericWithNull
@@ -233,6 +238,21 @@ namespace CoreNodeModels
 
             OnNodeModified();
             RaisePropertyChanged("SelectionResults");
+        }
+
+        protected override bool UpdateValueCore(UpdateValueParams updateValueParams)
+        {
+            string name = updateValueParams.PropertyName;
+            string value = updateValueParams.PropertyValue;
+
+            if (name == "Value" && value != null)
+            {
+                List<string> savedUuids = value.Split(',').ToList();
+                ResetSelectionFromIds(savedUuids);
+                return true; // UpdateValueCore handled.
+            }
+
+            return base.UpdateValueCore(updateValueParams);
         }
 
         /// <summary>

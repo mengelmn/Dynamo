@@ -127,10 +127,7 @@ namespace Dynamo.Engine
 
             liveRunnerServices = new LiveRunnerServices(this, geometryFactoryFileName);
 
-            liveRunnerServices.ReloadAllLibraries(libraryServices.ImportedLibraries);
-            libraryServices.SetLiveCore(LiveRunnerCore);
-
-            codeCompletionServices = new CodeCompletionServices(LiveRunnerCore);
+            OnLibraryLoaded();
 
             astBuilder = new AstBuilder(this);
             syncDataManager = new SyncDataManager();
@@ -364,15 +361,22 @@ namespace Dynamo.Engine
                 nodes.Where(n => n.NeedsForceExecution)
                      .Select(n => n.GUID));
 
-            if (reExecuteNodesIds.Any())
+            var codeBlockNodes = new HashSet<Guid>(
+                nodes.Where(n => n is CodeBlockNodeModel).Select(n => n.GUID));
+
+            if (reExecuteNodesIds.Any() || codeBlockNodes.Any())
             {
                 for (int i = 0; i < graphSyncdata.ModifiedSubtrees.Count; ++i)
                 {
                     var st = graphSyncdata.ModifiedSubtrees[i];
-                    if (reExecuteNodesIds.Contains(st.GUID))
+                    var forceExecution = reExecuteNodesIds.Contains(st.GUID);
+                    var isCodeBlockNode = codeBlockNodes.Contains(st.GUID);
+                    
+                    if (forceExecution || isCodeBlockNode) 
                     {
                         Subtree newSt = new Subtree(st.AstNodes, st.GUID);
-                        newSt.ForceExecution = true;
+                        newSt.ForceExecution = forceExecution;
+                        newSt.DeltaComputation = !isCodeBlockNode;
                         graphSyncdata.ModifiedSubtrees[i] = newSt;
                     }
                 }
@@ -451,10 +455,7 @@ namespace Dynamo.Engine
             OnTraceReconciliationComplete(new TraceReconciliationEventArgs(callsiteToOrphanMap));
         }
 
-        /// <summary>
-        ///     LibraryLoaded event handler.
-        /// </summary>
-        private void LibraryLoaded(object sender, LibraryServices.LibraryLoadedEventArgs e)
+        private void OnLibraryLoaded()
         {
             liveRunnerServices.ReloadAllLibraries(libraryServices.ImportedLibraries);
 
@@ -462,6 +463,14 @@ namespace Dynamo.Engine
             // due to which a new instance of CodeCompletionServices needs to be created with the new Core
             codeCompletionServices = new CodeCompletionServices(LiveRunnerCore);
             libraryServices.SetLiveCore(LiveRunnerCore);
+        }
+
+        /// <summary>
+        ///     LibraryLoaded event handler.
+        /// </summary>
+        private void LibraryLoaded(object sender, LibraryServices.LibraryLoadedEventArgs e)
+        {
+            OnLibraryLoaded();
         }
 
         #region Implement IAstNodeContainer interface

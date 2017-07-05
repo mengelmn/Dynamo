@@ -15,7 +15,9 @@ using Dynamo.Graph.Nodes.ZeroTouch;
 using Dynamo.Graph.Workspaces;
 using Dynamo.Models;
 using Dynamo.Selection;
+using Newtonsoft.Json;
 using NUnit.Framework;
+using ProtoCore.DSASM;
 using DynCmd = Dynamo.Models.DynamoModel;
 
 namespace Dynamo.Tests
@@ -45,6 +47,29 @@ namespace Dynamo.Tests
             var addNode = new DSFunction(CurrentDynamoModel.LibraryServices.GetFunctionDescriptor("+"));
             CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(addNode, false);
             Assert.AreEqual(CurrentDynamoModel.CurrentWorkspace.Nodes.Count(), 1);
+        }
+
+        [Test]
+        [Category("UnitTests")]
+        public void WorkspaceModelHasCorrectDependencies()
+        {   
+            var addNode = new DSFunction(CurrentDynamoModel.LibraryServices.GetFunctionDescriptor("+"));
+            var ws = this.CurrentDynamoModel.CustomNodeManager.CreateCustomNode("someNode", "someCategory", "");
+            var csid =  (ws as CustomNodeWorkspaceModel).CustomNodeId;
+            var customNode = this.CurrentDynamoModel.CustomNodeManager.CreateCustomNodeInstance(csid);
+
+            Assert.AreEqual(0, CurrentDynamoModel.CurrentWorkspace.Dependencies.ToList().Count());
+
+            CurrentDynamoModel.AddNodeToCurrentWorkspace(customNode,false);
+            CurrentDynamoModel.CurrentWorkspace.AddAndRegisterNode(addNode, false);
+            Assert.AreEqual(1, CurrentDynamoModel.CurrentWorkspace.Dependencies.ToList().Count());
+            //assert that we still only record one dep even though custom node is in graph twice.
+            CurrentDynamoModel.AddNodeToCurrentWorkspace(customNode, false);
+            Assert.AreEqual(1, CurrentDynamoModel.CurrentWorkspace.Dependencies.ToList().Count());
+
+            //assert that guid we have stored is is the custom nodes functionID
+            Assert.AreEqual(customNode.FunctionUuid, CurrentDynamoModel.CurrentWorkspace.Dependencies.First());
+
         }
 
         [Test]
@@ -132,7 +157,7 @@ namespace Dynamo.Tests
         }
 
         [Test]
-        [Category("UnitTests")]
+        [Category("UnitTests"), Category("Slow")]
         public void CanAdd100NodesToClipboard()
         {
             int numNodes = 100;
@@ -219,7 +244,7 @@ namespace Dynamo.Tests
         }
 
         [Test]
-        [Category("UnitTests")]
+        [Category("UnitTests"), Category("Slow")]
         public void CanAdd100NodesToClipboardAndPaste()
         {
             int numNodes = 100;
@@ -304,7 +329,7 @@ namespace Dynamo.Tests
         }
 
         [Test]
-        [Category("UnitTests")]
+        [Category("UnitTests"), Category("Slow")]
         public void CanAdd100NodesToClipboardAndPaste3Times()
         {
             int numNodes = 100;
@@ -444,7 +469,7 @@ namespace Dynamo.Tests
             //Get the first node and assert the lacing strategy
             var node = CurrentDynamoModel.CurrentWorkspace.Nodes.First();
             Assert.IsNotNull(node);
-            Assert.AreEqual(LacingStrategy.Shortest, node.ArgumentLacing);
+            Assert.AreEqual(LacingStrategy.Auto, node.ArgumentLacing);
 
             //change the lacing strategy
             CurrentDynamoModel.CurrentWorkspace.UpdateModelValue(new List<Guid> { node.GUID }, "ArgumentLacing", "Longest");
@@ -472,9 +497,9 @@ namespace Dynamo.Tests
             string fn = "ruthlessTurtles.dyn";
             string path = Path.Combine(TempFolder, fn);
 
-            CurrentDynamoModel.CurrentWorkspace.SaveAs(
+            CurrentDynamoModel.SaveWorkspace(
                 path,
-                CurrentDynamoModel.EngineController.LiveRunnerRuntimeCore);
+                CurrentDynamoModel.CurrentWorkspace);
 
             var tempFldrInfo = new DirectoryInfo(TempFolder);
             Assert.AreEqual(1, tempFldrInfo.GetFiles().Length);
@@ -495,9 +520,7 @@ namespace Dynamo.Tests
 
             string fn = "ruthlessTurtles.dyn";
             string path = Path.Combine(TempFolder, fn);
-            CurrentDynamoModel.CurrentWorkspace.SaveAs(
-                path,
-                CurrentDynamoModel.EngineController.LiveRunnerRuntimeCore);
+            CurrentDynamoModel.SaveWorkspace(path, CurrentDynamoModel.CurrentWorkspace);
 
             var tempFldrInfo = new DirectoryInfo(TempFolder);
             Assert.AreEqual(1, tempFldrInfo.GetFiles().Length);
@@ -510,7 +533,7 @@ namespace Dynamo.Tests
         [Category("UnitTests")]
         public void CannotSaveEmptyWorkspaceIfSaveIsCalledWithoutSettingPath()
         {
-            CurrentDynamoModel.CurrentWorkspace.Save(CurrentDynamoModel.EngineController.LiveRunnerRuntimeCore);
+            CurrentDynamoModel.SaveWorkspace(CurrentDynamoModel.CurrentWorkspace.FileName, CurrentDynamoModel.CurrentWorkspace);
 
             Assert.AreEqual(CurrentDynamoModel.CurrentWorkspace.FileName, string.Empty);
         }
@@ -528,7 +551,7 @@ namespace Dynamo.Tests
                 Assert.AreEqual(i + 1, CurrentDynamoModel.CurrentWorkspace.Nodes.Count());
             }
 
-            CurrentDynamoModel.CurrentWorkspace.Save(CurrentDynamoModel.EngineController.LiveRunnerRuntimeCore);
+            CurrentDynamoModel.SaveWorkspace(CurrentDynamoModel.CurrentWorkspace.FileName, CurrentDynamoModel.CurrentWorkspace);
 
             Assert.AreEqual(CurrentDynamoModel.CurrentWorkspace.FileName, string.Empty);
         }
@@ -850,9 +873,6 @@ namespace Dynamo.Tests
             {
                 Assert.IsTrue(node.UpstreamCache.SetEquals(node.AllUpstreamNodes(new List<NodeModel>())));
             }
-
-
-
         }
     }
 }

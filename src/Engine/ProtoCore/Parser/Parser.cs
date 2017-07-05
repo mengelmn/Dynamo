@@ -1814,7 +1814,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Associative_LogicalExpression(out ProtoCore.AST.AssociativeAST.AssociativeNode node) {
 		Associative_ComparisonExpression(out node);
-		while (la.kind == 59 || la.kind == 60) {
+		while (la.kind == 57 || la.kind == 58) {
 			Operator op;
 			Associative_LogicalOp(out op);
 			ProtoCore.AST.AssociativeAST.AssociativeNode expr2; 
@@ -1843,7 +1843,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 		node = null; 
 		if (StartOf(13)) {
 			Associative_NegExpression(out node);
-		} else if (la.kind == 14 || la.kind == 61) {
+		} else if (la.kind == 14 || la.kind == 59) {
 			Associative_BitUnaryExpression(out node);
 		} else SynErr(82);
 	}
@@ -1874,7 +1874,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			Get();
 			op = UnaryOperator.Not;    
 			#if ENABLE_BIT_OP          
-		} else if (la.kind == 61) {
+		} else if (la.kind == 59) {
 			Get();
 			op = UnaryOperator.Negate; 
 			#endif                     
@@ -1934,9 +1934,9 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Associative_LogicalOp(out Operator op) {
 		op = Operator.and; 
-		if (la.kind == 59) {
+		if (la.kind == 57) {
 			Get();
-		} else if (la.kind == 60) {
+		} else if (la.kind == 58) {
 			Get();
 			op = Operator.or; 
 		} else SynErr(86);
@@ -1987,7 +1987,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			bool hasRangeAmountOperator = false;
 			
 			Get();
-			if (la.kind == 62) {
+			if (la.kind == 60) {
 				Associative_rangeAmountOperator(out hasRangeAmountOperator);
 			}
 			rnode.HasRangeAmountOperator = hasRangeAmountOperator; 
@@ -2023,14 +2023,14 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Associative_rangeAmountOperator(out bool hasRangeAmountOperator) {
 		hasRangeAmountOperator = false; 
-		Expect(62);
+		Expect(60);
 		hasRangeAmountOperator = true; 
 	}
 
 	void Associative_rangeStepOperator(out RangeStepOperator op) {
 		op = RangeStepOperator.StepSize; 
-		if (la.kind == 61 || la.kind == 62) {
-			if (la.kind == 62) {
+		if (la.kind == 59 || la.kind == 60) {
+			if (la.kind == 60) {
 				Get();
 				op = RangeStepOperator.Number; 
 			} else {
@@ -2063,49 +2063,61 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 		} else SynErr(89);
 	}
 
-	void Associative_BitOp(out Operator op) {
-		op = Operator.bitwiseand; 
-		if (la.kind == 57) {
-			Get();
-		} else if (la.kind == 58) {
-			Get();
-			op = Operator.bitwisexor; 
-		} else if (la.kind == 16) {
-			Get();
-			op = Operator.bitwiseor; 
-		} else SynErr(90);
-	}
-
 	void Associative_Term(out ProtoCore.AST.AssociativeAST.AssociativeNode node) {
-		#if ENABLE_BIT_OP 
-		Associative_interimfactor(out node);
-		#else             
 		Associative_Factor(out node);
-		#endif            
 		while (la.kind == 54 || la.kind == 55 || la.kind == 56) {
 			Operator op; 
 			Associative_MulOp(out op);
 			ProtoCore.AST.AssociativeAST.AssociativeNode expr2; 
-			#if ENABLE_BIT_OP 
-			Associative_interimfactor(out expr2);
-			#else             
 			Associative_Factor(out expr2);
-			#endif            
 			node = GenerateBinaryOperatorMethodCallNode(op, node, expr2);
 			
 		}
 	}
 
-	void Associative_interimfactor(out ProtoCore.AST.AssociativeAST.AssociativeNode node) {
-		Associative_Factor(out node);
-		while (la.kind == 16 || la.kind == 57 || la.kind == 58) {
-			Operator op; 
-			Associative_BitOp(out op);
-			ProtoCore.AST.AssociativeAST.AssociativeNode expr2; 
-			Associative_Factor(out expr2);
-			node = GenerateBinaryOperatorMethodCallNode(op, node, expr2);
+	void Associative_Level(out ProtoCore.AST.AssociativeAST.AssociativeNode node) {
+		node = null; 
+		int sign = 1;
+		
+		if (la.kind == 1) {
+			Get();
+			if(t.val[0] != 'L')
+			{
+			   errors.SemErr(t.line, t.col, String.Format(Resources.kInvalidListLevelName, t.val));
+			}
+			var level = t.val.Remove(0, 1);
+			Int64 value;
+			if (Int64.TryParse(level, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out value))
+			{
+			   node = new ProtoCore.AST.AssociativeAST.IntNode(-1*value);
+			}
+			else
+			{
+			   errors.SemErr(t.line, t.col, String.Format(Resources.kInvalidListLevelName, t.val));
+			}
 			
-		}
+			NodeUtils.SetNodeLocation(node, t);
+			
+		} else if (la.kind == 2 || la.kind == 15) {
+			if (la.kind == 15) {
+				Get();
+				sign = -1; 
+				
+			}
+			Expect(2);
+			Int64 value;
+			if (Int64.TryParse(t.val, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out value))
+			{
+			   node = new ProtoCore.AST.AssociativeAST.IntNode(sign*value);
+			}
+			else
+			{
+			   errors.SemErr(t.line, t.col, String.Format(Resources.kInvalidListLevelName, t.val));
+			}
+			
+			NodeUtils.SetNodeLocation(node, t);
+			
+		} else SynErr(90);
 	}
 
 	void Associative_Number(out ProtoCore.AST.AssociativeAST.AssociativeNode node) {
@@ -2365,10 +2377,10 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			
 			if (la.kind == 8) {
 				Get();
-				Associative_Number(out levelNode);
+				Associative_Level(out levelNode);
 			} else {
 				Get();
-				Associative_Number(out levelNode);
+				Associative_Level(out levelNode);
 				isDominant = true; 
 			}
 			IntNode listAtLevel = levelNode as IntNode;
@@ -2688,7 +2700,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 		int idLine = la.line; int idCol = la.col; 
 		Imperative_Ident(out node);
 		loopNode.LoopVariable = node; loopNode.LoopVariable.line = idLine; loopNode.LoopVariable.col = idCol; 
-		Expect(63);
+		Expect(61);
 		loopNode.KwInLine = t.line; loopNode.KwInCol = t.col; int exprLine = la.line; int exprCol = la.col; 
 		Imperative_expr(out node);
 		loopNode.Expression = node; if (loopNode.Expression != null) {  loopNode.Expression.line = exprLine; loopNode.Expression.col = exprCol; } 
@@ -2933,7 +2945,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 	void Imperative_binexpr(out ProtoCore.AST.ImperativeAST.ImperativeNode node) {
 		node = null;
 		Imperative_logicalexpr(out node);
-		while (la.kind == 59 || la.kind == 60) {
+		while (la.kind == 57 || la.kind == 58) {
 			Operator op; 
 			Imperative_logicalop(out op);
 			ProtoCore.AST.ImperativeAST.ImperativeNode rhsNode = null; 
@@ -3067,7 +3079,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 		node = null; 
 		if (la.kind == 15) {
 			Imperative_negexpr(out node);
-		} else if (la.kind == 14 || la.kind == 61) {
+		} else if (la.kind == 14 || la.kind == 59) {
 			Imperative_bitunaryexpr(out node);
 		} else SynErr(107);
 	}
@@ -3107,7 +3119,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			Get();
 			op = UnaryOperator.Not; 
 			#if ENABLE_BIT_OP       
-		} else if (la.kind == 61) {
+		} else if (la.kind == 59) {
 			Get();
 			op = UnaryOperator.Negate; 
 			#endif                     
@@ -3139,7 +3151,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			
 		} else if (la.kind == 1 || la.kind == 12 || la.kind == 44) {
 			Imperative_IdentifierList(out node);
-		} else if (la.kind == 14 || la.kind == 15 || la.kind == 61) {
+		} else if (la.kind == 14 || la.kind == 15 || la.kind == 59) {
 			Imperative_unaryexpr(out node);
 		} else SynErr(109);
 	}
@@ -3169,10 +3181,10 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Imperative_logicalop(out Operator op) {
 		op = Operator.none; 
-		if (la.kind == 59) {
+		if (la.kind == 57) {
 			Get();
 			op = Operator.and; 
-		} else if (la.kind == 60) {
+		} else if (la.kind == 58) {
 			Get();
 			op = Operator.or; 
 		} else SynErr(110);
@@ -3187,7 +3199,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 			bool hasAmountOperator = false;
 			
 			Get();
-			if (la.kind == 62) {
+			if (la.kind == 60) {
 				Imperative_rangeAmountOperator(out hasAmountOperator);
 			}
 			rnode.HasRangeAmountOperator = hasAmountOperator; 
@@ -3266,14 +3278,14 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Imperative_rangeAmountOperator(out bool hasAmountOperator) {
 		hasAmountOperator = false; 
-		Expect(62);
+		Expect(60);
 		hasAmountOperator = true; 
 	}
 
 	void Imperative_rangeStepOperator(out RangeStepOperator op) {
 		op = RangeStepOperator.StepSize; 
-		if (la.kind == 61 || la.kind == 62) {
-			if (la.kind == 62) {
+		if (la.kind == 59 || la.kind == 60) {
+			if (la.kind == 60) {
 				Get();
 				op = RangeStepOperator.Number; 
 			} else {
@@ -3323,7 +3335,7 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 	void Imperative_interimfactor(out ProtoCore.AST.ImperativeAST.ImperativeNode node) {
 		node = null;
 		Imperative_factor(out node);
-		while (la.kind == 16 || la.kind == 57 || la.kind == 58) {
+		while (la.kind == 16 || la.kind == 62 || la.kind == 63) {
 			Operator op; 
 			Imperative_bitop(out op);
 			ProtoCore.AST.ImperativeAST.ImperativeNode rhsNode; 
@@ -3354,13 +3366,13 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 
 	void Imperative_bitop(out Operator op) {
 		op = Operator.none; 
-		if (la.kind == 57) {
+		if (la.kind == 62) {
 			Get();
 			op = Operator.bitwiseand; 
 		} else if (la.kind == 16) {
 			Get();
 			op = Operator.bitwiseor; 
-		} else if (la.kind == 58) {
+		} else if (la.kind == 63) {
 			Get();
 			op = Operator.bitwisexor; 
 		} else SynErr(114);
@@ -3505,21 +3517,21 @@ langblock.codeblock.Language == ProtoCore.Language.NotSpecified) {
 	}
 	
 	static readonly bool[,] set = {
-		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{x,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{x,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
+		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,T,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
 		{x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,T,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{T,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
+		{T,T,T,T, T,T,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
 		{T,T,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,T,x,T, x,T,T,T, T,T,x,x, x,T,T,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
-		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,T,x,x, T,T,x,x, x,T,T,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
+		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,T,x,T, x,T,T,T, T,T,x,x, x,T,T,x, x,T,T,T, T,T,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
+		{x,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,T,x,x, T,T,x,x, x,T,T,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
+		{T,T,T,T, T,T,x,x, x,x,T,x, T,x,T,T, x,x,x,x, x,x,x,T, x,x,x,x, x,x,x,x, x,x,T,x, x,x,x,x, x,T,T,T, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
 		{x,T,x,x, x,x,x,x, x,x,x,x, T,x,x,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x},
-		{x,T,x,x, x,x,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,x,x, x,x},
+		{x,T,x,x, x,x,x,x, x,x,x,x, T,x,T,T, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, T,x,x,x, x,x,x,x, x,x,x,x, x,x,x,T, x,x,x,x, x,x},
 		{x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,T,T,T, T,T,T,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x,x,x, x,x}
 
 	};
@@ -3593,13 +3605,13 @@ public class Errors {
 			case 54: s = "\"*\" expected"; break;
 			case 55: s = "\"/\" expected"; break;
 			case 56: s = "\"%\" expected"; break;
-			case 57: s = "\"&\" expected"; break;
-			case 58: s = "\"^\" expected"; break;
-			case 59: s = "\"&&\" expected"; break;
-			case 60: s = "\"||\" expected"; break;
-			case 61: s = "\"~\" expected"; break;
-			case 62: s = "\"#\" expected"; break;
-			case 63: s = "\"in\" expected"; break;
+			case 57: s = "\"&&\" expected"; break;
+			case 58: s = "\"||\" expected"; break;
+			case 59: s = "\"~\" expected"; break;
+			case 60: s = "\"#\" expected"; break;
+			case 61: s = "\"in\" expected"; break;
+			case 62: s = "\"&\" expected"; break;
+			case 63: s = "\"^\" expected"; break;
 			case 64: s = "??? expected"; break;
 			case 65: s = "this symbol not expected in Import_Statement"; break;
 			case 66: s = "invalid Import_Statement"; break;
@@ -3626,7 +3638,7 @@ public class Errors {
 			case 87: s = "invalid Associative_ComparisonOp"; break;
 			case 88: s = "invalid Associative_AddOp"; break;
 			case 89: s = "invalid Associative_MulOp"; break;
-			case 90: s = "invalid Associative_BitOp"; break;
+			case 90: s = "invalid Associative_Level"; break;
 			case 91: s = "invalid Associative_Number"; break;
 			case 92: s = "invalid Associative_NameReference"; break;
 			case 93: s = "invalid Associative_NameReference"; break;

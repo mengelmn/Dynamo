@@ -377,7 +377,7 @@ namespace Dynamo.Engine
         /// <param name="library">Library path</param>
         /// <param name="mangledName">Mangled function name</param>
         /// <returns></returns>
-        internal FunctionDescriptor GetFunctionDescriptor(string library, string mangledName)
+        public FunctionDescriptor GetFunctionDescriptor(string library, string mangledName)
         {
             if (null == library || null == mangledName)
                 throw new ArgumentNullException();
@@ -399,7 +399,7 @@ namespace Dynamo.Engine
         /// </summary>
         /// <param name="managledName"></param>
         /// <returns></returns>
-        internal FunctionDescriptor GetFunctionDescriptor(string managledName)
+        public FunctionDescriptor GetFunctionDescriptor(string managledName)
         {
             if (string.IsNullOrEmpty(managledName))
                 throw new ArgumentException("Invalid arguments");
@@ -415,6 +415,35 @@ namespace Dynamo.Engine
                     groupMap => TryGetFunctionGroup(groupMap, qualifiedName, out functionGroup))
                     ? functionGroup.GetFunctionDescriptor(managledName)
                     : null;
+        }
+
+        /// <summary>
+        ///     Returns a list of function descriptors associated with the function name.
+        /// </summary>
+        /// <param name="qualifiedName"></param>
+        /// <returns></returns>
+        public IEnumerable<FunctionDescriptor> GetAllFunctionDescriptors(string qualifiedName)
+        {
+            IEnumerable<FunctionDescriptor> descriptors = null;
+            FunctionGroup functionGroup;
+
+            // Check through both builtinFunctionGroups and importedFunctionGroups to find the function descriptors
+            if (builtinFunctionGroups.TryGetValue(qualifiedName, out functionGroup))
+            {
+                descriptors = functionGroup.Functions;
+                return descriptors;
+            }
+
+            foreach (var fg in importedFunctionGroups)
+            {
+                if (fg.Value.TryGetValue(qualifiedName, out functionGroup))
+                {
+                    descriptors = functionGroup.Functions;
+                    return descriptors;
+                }
+            }
+
+            return null; // If no function descriptors are found
         }
 
         /// <summary>

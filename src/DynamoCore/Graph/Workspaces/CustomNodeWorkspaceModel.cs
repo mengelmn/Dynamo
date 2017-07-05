@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml;
@@ -10,7 +11,6 @@ using Dynamo.Graph.Nodes.CustomNodes;
 using Dynamo.Graph.Nodes.NodeLoaders;
 using Dynamo.Graph.Notes;
 using Dynamo.Graph.Presets;
-using Dynamo.Interfaces;
 using ProtoCore.Namespace;
 
 namespace Dynamo.Graph.Workspaces
@@ -81,6 +81,8 @@ namespace Dynamo.Graph.Workspaces
             WorkspaceInfo info)
             : base(nodes, notes, annotations, info, factory, presets, elementResolver)
         {
+            Debug.WriteLine("Creating a custom node workspace...");
+
             HasUnsavedChanges = false;
 
             CustomNodeId = Guid.Parse(info.ID);
@@ -285,19 +287,14 @@ namespace Dynamo.Graph.Workspaces
         }
 
         /// <summary>
-        /// Saves custom node workspace to a file
+        /// Saves custom node workspace
         /// </summary>
         /// <param name="newPath">New location to save the workspace.</param>
-        /// <param name="runtimeCore">The <see cref="ProtoCore.RuntimeCore"/> object 
-        /// to obtain serialized trace data for node list to save.</param>
         /// <param name="isBackup">Indicates whether saved workspace is backup or not. If it's not backup,
         /// we should add it to recent files. Otherwise leave it.</param>
         /// <returns></returns>
-        public override bool SaveAs(string newPath, ProtoCore.RuntimeCore runtimeCore, bool isBackUp = false)
+        public override bool Save(string newPath, bool isBackup = false)
         {
-            if (isBackUp)
-                return base.SaveAs(newPath, runtimeCore, isBackUp);
-
             var originalPath = FileName;
 
             // A SaveAs to an existing function id prompts the creation of a new 
@@ -314,7 +311,7 @@ namespace Dynamo.Graph.Workspaces
                 SetInfo(Path.GetFileNameWithoutExtension(newPath));
             }
 
-            return base.SaveAs(newPath, runtimeCore, isBackUp);
+            return base.Save(newPath, isBackup);
         }
 
         protected override bool PopulateXmlDocument(XmlDocument document)

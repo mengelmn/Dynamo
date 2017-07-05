@@ -516,63 +516,6 @@ t = RemoveDuplicates(b);
         }
 
         [Test]
-        public void DebugEQTestMethometicalFunction()
-        {
-            String code =
-                @"import(""DSCoreNodes.dll"");
-a = -9.30281;
-b = 20.036;
-x1 = Math.Abs(a);
-y1 = Math.Abs(b);
-x2 = Math.Ceiling(a);
-y2 = Math.Ceiling(b);
-x3 = Math.Exp(1.3);
-y3 = Math.Exp(b);
-x4 = Math.Floor(a);
-y4 = Math.Floor(b);
-x5 = Math.Log(x1, 2);
-y5 = Math.Log(b, 2);
-x6 = Math.Log10(x1);
-y6 = Math.Log10(b);
-x7 = Math.Min(a, b);
-y7 = Math.Max(a, b);
-x9 = Math.Sqrt(x1);
-y9 = Math.Sqrt(b);
-";
-            DebugTestFx.CompareDebugAndRunResults(code);
-        }
-
-        [Test]
-        public void DebugEQTestTrigonometricFunction()
-        {
-            String code =
-                @"import(""DSCoreNodes.dll"");
-a = -0.5;
-b = 0.5;
-c = 45;
-d = -45;
-e = 2.90;
-f = 1.90;
-x1 = Math.Acos(a);
-y1 = Math.Asin(a);
-z1 = Math.Atan(a);
-r1 = Math.Atan2(e, f);
-x2 = Math.Acos(b);
-y2 = Math.Asin(b);
-z2 = Math.Atan(b);
-x3 = Math.Sin(c);
-y3 = Math.Cos(c);
-z3 = Math.Tan(c);
-r3 = Math.Tanh(c);
-x4 = Math.Sin(d);
-y4 = Math.Cos(d);
-z4 = Math.Tan(d);
-r4 = Math.Tanh(d);
-";
-            DebugTestFx.CompareDebugAndRunResults(code);
-        }
-
-        [Test]
         public void DebugEQTestMethodWithArrayInput2()
         {
             string code =
@@ -1572,7 +1515,7 @@ a = a + 2;	// I am assuming that this statement (on line 27) is executed after t
 
 
             string code = @"
-import (""..\..\..\test\Engine\ProtoTest\ImportFiles\basicImport.ds"");
+import (""..\\..\\..\\test\\Engine\\ProtoTest\\ImportFiles\\basicImport.ds"");
 a = {1.1,2.2};
 b = 2;
 c = Scale(a,b);
@@ -1938,7 +1881,7 @@ a  = a2 + b;    // 6
         public void DebugEQT005_BasicImport_RelativePath()
         {
             string code = @"
-import ("".\ExtraFolderToTestRelativePath\basicImport.ds"");
+import ("".\\ExtraFolderToTestRelativePath\\basicImport.ds"");
 a = {1.1,2.2};
 b = 2;
 c = Scale(a,b);
@@ -3758,7 +3701,7 @@ a3 = 1 > 2 ? true : b;
         public void DebugEQT021_Defect_1457354()
         {
             string code = @"
-import (""c:\wrongPath\test.ds"");
+import (""c:\\wrongPath\\test.ds"");
 a = 1;
 b = a * 2;
 ";

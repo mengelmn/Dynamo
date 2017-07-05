@@ -1348,6 +1348,18 @@ namespace Dynamo.Models
                 /// </summary>
                 End,
                 /// <summary>
+                /// Begin shift reconnections.
+                /// </summary>
+                BeginShiftReconnections,
+                /// <summary>
+                /// End shift reconnections.
+                /// </summary>
+                EndShiftReconnections,
+                /// <summary>
+                /// End and start control connections.
+                /// </summary>
+                EndAndStartCtrlConnection,
+                /// <summary>
                 /// Cancel connection.
                 /// </summary>
                 Cancel

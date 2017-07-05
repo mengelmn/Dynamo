@@ -14,6 +14,7 @@ using System.Xml;
 using System.Globalization;
 using Dynamo.Graph;
 using Dynamo.Graph.Nodes;
+using Newtonsoft.Json;
 
 namespace GeometryUI
 {
@@ -48,15 +49,25 @@ namespace GeometryUI
             }
         }
 
+        [JsonConstructor]
+        private ExportWithUnits(IEnumerable<PortModel> inPorts, IEnumerable<PortModel> outPorts):
+            base(inPorts, outPorts)
+        {
+            SelectedExportedUnit = ConversionUnit.Feet;
+            SelectedExportedUnitsSource =
+                Conversions.ConversionMetricLookup[ConversionMetricUnit.Length];
+            ShouldDisplayPreviewCore = true;
+        }
+
         public ExportWithUnits()
         {
             SelectedExportedUnit = ConversionUnit.Feet;
             SelectedExportedUnitsSource =
                 Conversions.ConversionMetricLookup[ConversionMetricUnit.Length];
 
-            InPortData.Add(new PortData("geometry", Resources.ExportToSatGeometryInputDescription));
-            InPortData.Add(new PortData("filePath", Resources.ExportToSatFilePathDescription, new StringNode()));
-            OutPortData.Add(new PortData("string", Resources.ExportToSatFilePathOutputDescription));
+            InPorts.Add(new PortModel(PortType.Input, this, new PortData("geometry", Resources.ExportToSatGeometryInputDescription)));
+            InPorts.Add(new PortModel(PortType.Input, this, new PortData("filePath", Resources.ExportToSatFilePathDescription, new StringNode())));
+            OutPorts.Add(new PortModel(PortType.Output, this, new PortData("string", Resources.ExportToSatFilePathOutputDescription)));
 
             ShouldDisplayPreviewCore = true;
             RegisterAllPorts();
@@ -65,6 +76,11 @@ namespace GeometryUI
         public override IEnumerable<AssociativeNode> BuildOutputAst(
             List<AssociativeNode> inputAstNodes)
         {
+            if (!InPorts[0].IsConnected || !InPorts[1].IsConnected)
+            {
+                return new[] { AstFactory.BuildAssignment(GetAstIdentifierForOutputIndex(0), AstFactory.BuildNullNode()) };
+            }
+
             double unitsMM = Conversions.ConversionDictionary[SelectedExportedUnit]*1000.0;
 
             var geometryListNode = inputAstNodes[0];

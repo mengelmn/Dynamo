@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.DesignScript.Runtime;
 using CSMath = System.Math;
+using DSCore.Properties;
 
 namespace DSCore
 {
@@ -77,6 +78,47 @@ namespace DSCore
         {
             //DS will do proper marshalling, even if integer is sent.
             return numbers.Average();
+        }
+
+        /// <summary>
+        ///     Maps the input value to a number between 0 and 1 based on the input range.
+        /// </summary>
+        /// <param name="rangeMin">The minimum value of the input range.</param>
+        /// <param name="rangeMax">The maximum value of the input range.</param>
+        /// <param name="inputValue">The number to be mapped.</param>
+        /// <returns name="double">The mapped value.</returns>
+        /// <search>map,range,minimum,maximum,normalize</search>
+        public static double Map(double rangeMin, double rangeMax, double inputValue)
+        {
+            double result = (inputValue - rangeMin) / (rangeMax - rangeMin);
+            if (result < 0)
+            {
+                return 0.0;
+            }
+            else if (result > 1)
+            {
+                return 1.0;
+            }
+            else
+            {
+                return result;
+            }
+        }
+
+        /// <summary>
+        ///     Maps the input value to a number between targetRangeMin and targetRangeMax.
+        /// </summary>
+        /// <param name="rangeMin">The minimum value of the input range.</param>
+        /// <param name="rangeMax">The maximum value of the input range.</param>
+        /// <param name="inputValue">The number to be mapped.</param>
+        /// <param name="targetRangeMin">The minimum value of the new range.</param>
+        /// <param name="targetRangeMax">The maximum value of the new range.</param>
+        /// <returns name="double">The mapped value.</returns>
+        /// <search>map,range,mapto,minimum,maximum,normalize</search>
+        public static double MapTo(double rangeMin, double rangeMax, double inputValue, double targetRangeMin, double targetRangeMax)
+        {
+            double percent = Map(rangeMin, rangeMax, inputValue);
+            return targetRangeMin + (targetRangeMax - targetRangeMin) * percent;
         }
 
         /// <summary>
@@ -520,11 +562,34 @@ namespace DSCore
         /// <search>!</search>
         public static long Factorial(long number)
         {
-            if (number < 0)
+            checked
             {
-                return -1;
+                try
+                {
+                    long factorial = 1;
+
+                    if (number < 0)
+                    {
+                        throw new ArgumentException(Resources.FactorialNegativeInt);
+                    }
+
+                    if (number == 0)
+                    {
+                        return factorial;
+                    }
+
+                    for (long i = number; i > 0; i--)
+                    {
+                        factorial = i * factorial;
+                    }
+                    return factorial;
+                }
+
+                catch (System.OverflowException)
+                {
+                    throw new OverflowException(Resources.FactorialOverflow);
+                }
             }
-            return (number > 1) ? number * Factorial(number - 1) : 1;
         }
 
         private static readonly Random mRandom = new Random();

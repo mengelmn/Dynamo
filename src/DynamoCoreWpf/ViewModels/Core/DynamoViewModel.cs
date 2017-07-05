@@ -1,4 +1,4 @@
-﻿using Dynamo.Configuration;
+using Dynamo.Configuration;
 using Dynamo.Engine;
 using Dynamo.Exceptions;
 using Dynamo.Graph;
@@ -48,6 +48,20 @@ namespace Dynamo.ViewModels
 
     public partial class DynamoViewModel : ViewModelBase, IDynamoViewModel
     {
+        public int ScaleFactorLog
+        {
+            get
+            {
+                return (CurrentSpace == null) ? 0 :
+                    Convert.ToInt32(Math.Log10(CurrentSpace.ScaleFactor));
+            }
+            set
+            {
+                CurrentSpace.ScaleFactor = Math.Pow(10, value);
+                CurrentSpace.ScaleFactorChanged = true;
+            }
+        }
+
         #region properties
 
         private readonly DynamoModel model;
@@ -778,7 +792,7 @@ namespace Dynamo.ViewModels
 
         public static void ReportABug(object parameter)
         {
-            Process.Start(Configurations.GitHubBugReportingLink);
+            Process.Start(new ProcessStartInfo("explorer.exe", Configurations.GitHubBugReportingLink));
         }
 
         public static void ReportABug()
@@ -788,7 +802,7 @@ namespace Dynamo.ViewModels
 
         internal static void DownloadDynamo()
         {
-            Process.Start(Configurations.DynamoDownloadLink);
+            Process.Start(new ProcessStartInfo("explorer.exe", Configurations.DynamoDownloadLink));
         }
 
         internal bool CanReportABug(object parameter)
@@ -868,6 +882,10 @@ namespace Dynamo.ViewModels
                         this.PublishCurrentWorkspaceCommand.RaiseCanExecuteChanged();
                     RaisePropertyChanged("IsPanning");
                     RaisePropertyChanged("IsOrbiting");
+                    if (ChangeScaleFactorCommand != null)
+                    {
+                        ChangeScaleFactorCommand.RaiseCanExecuteChanged();
+                    }
                     //RaisePropertyChanged("RunEnabled");
                     break;
 
@@ -1264,8 +1282,16 @@ namespace Dynamo.ViewModels
             // if you've got the current space path, use it as the inital dir
             if (!string.IsNullOrEmpty(Model.CurrentWorkspace.FileName))
             {
-                var fi = new FileInfo(Model.CurrentWorkspace.FileName);
-                _fileDialog.InitialDirectory = fi.DirectoryName;
+                string path = Model.CurrentWorkspace.FileName;
+                if (File.Exists(path))
+                {
+                    var fi = new FileInfo(Model.CurrentWorkspace.FileName);
+                    _fileDialog.InitialDirectory = fi.DirectoryName;
+                }
+                else
+                {
+                    _fileDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+                }
             }
             else // use the samples directory, if it exists
             {
@@ -1294,6 +1320,12 @@ namespace Dynamo.ViewModels
 
         private void OpenRecent(object path)
         {
+            // Make sure user get chance to save unsaved changes first
+            if (CurrentSpaceViewModel.HasUnsavedChanges)
+            {
+                if (!AskUserToSaveWorkspaceOrCancel(HomeSpace))
+                    return;
+            }
             this.Open(path as string);
         }
 
@@ -1353,7 +1385,27 @@ namespace Dynamo.ViewModels
         {
             try
             {
-                Model.CurrentWorkspace.SaveAs(path, EngineController.LiveRunnerRuntimeCore);
+                model.SaveWorkspace(path, model.CurrentWorkspace);
+            }
+            catch (System.Exception ex)
+            {
+                if (ex is IOException || ex is System.UnauthorizedAccessException)
+                    System.Windows.MessageBox.Show(String.Format(ex.Message, MessageBoxButtons.OK, MessageBoxIcon.Warning));
+            }
+        }
+
+        /// <summary>
+        /// Save a specific workspace to a specific file path, if the path is null 
+        /// or empty, does nothing. If successful, the CurrentWorkspace.FileName
+        /// field is updated as a side effect.
+        /// </summary>
+        /// <param name="path">The path to save to</param>
+        /// <param name="ws">workspace to save</param>
+        internal void SaveAs(string path, WorkspaceModel ws)
+        {
+            try
+            {
+                model.SaveWorkspace(path, ws);
             }
             catch (System.Exception ex)
             {
@@ -1370,10 +1422,10 @@ namespace Dynamo.ViewModels
         /// <returns>true if save was successful, false otherwise</returns>
         internal bool ShowSaveDialogIfNeededAndSave(WorkspaceModel workspace)
         {
-            // crash sould always allow save as
+            // crash should always allow save as
             if (!String.IsNullOrEmpty(workspace.FileName) && !DynamoModel.IsCrashing)
             {
-                workspace.Save(EngineController.LiveRunnerRuntimeCore);
+                SaveAs(workspace.FileName, workspace);
                 return true;
             }
             else
@@ -1382,9 +1434,12 @@ namespace Dynamo.ViewModels
                 // sadly it's not usually possible to cancel a crash
 
                 var fd = this.GetSaveDialog(workspace);
+                // since the workspace file directory is null, we set the initial directory
+                // for the file to be MyDocument folder in the local computer. 
+                fd.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                 if (fd.ShowDialog() == DialogResult.OK)
                 {
-                    workspace.SaveAs(fd.FileName, EngineController.LiveRunnerRuntimeCore);
+                    SaveAs(fd.FileName, workspace);
                     return true;
                 }
             }
@@ -1442,7 +1497,7 @@ namespace Dynamo.ViewModels
             {
                 //set the zoom and offsets events
                 CurrentSpace.OnCurrentOffsetChanged(this, new PointEventArgs(new Point2D(CurrentSpace.X, CurrentSpace.Y)));
-                CurrentSpace.OnZoomChanged(this, new ZoomEventArgs(CurrentSpace.Zoom));
+                CurrentSpaceViewModel.OnZoomChanged(this, new ZoomEventArgs(CurrentSpaceViewModel.Zoom));
             }
         }
 
@@ -1478,7 +1533,7 @@ namespace Dynamo.ViewModels
         {
             WorkspaceViewModel wvm = this.CurrentSpaceViewModel;
 
-            if (wvm.IsConnecting && (node == wvm.ActiveConnector.ActiveStartPort.Owner))
+            if (wvm.IsConnecting && (node == wvm.FirstActiveConnector.ActiveStartPort.Owner))
                 wvm.CancelActiveState();
         }
 
@@ -1687,7 +1742,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         public void GoHomeView(object parameter)
         {
-            model.CurrentWorkspace.Zoom = 1.0;
+            CurrentSpaceViewModel.Zoom = 1.0;
 
             var ws = this.Model.Workspaces.First(x => x == model.CurrentWorkspace);
             ws.OnCurrentOffsetChanged(this, new PointEventArgs(new Point2D(0, 0)));
@@ -2021,7 +2076,7 @@ namespace Dynamo.ViewModels
 
         public void GoToWiki(object parameter)
         {
-            Process.Start(Configurations.DynamoWikiLink);
+            Process.Start(new ProcessStartInfo("explorer.exe", Configurations.DynamoWikiLink));
         }
 
         internal bool CanGoToWiki(object parameter)
@@ -2031,10 +2086,20 @@ namespace Dynamo.ViewModels
 
         public void GoToSourceCode(object parameter)
         {
-            Process.Start(Configurations.GitHubDynamoLink);
+            Process.Start(new ProcessStartInfo("explorer.exe", Configurations.GitHubDynamoLink));
         }
 
         internal bool CanGoToSourceCode(object parameter)
+        {
+            return true;
+        }
+
+        public void GoToDictionary(object parameter)
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", Configurations.DynamoDictionary));
+        }
+
+        internal bool CanGoToDictionary(object parameter)
         {
             return true;
         }
@@ -2051,10 +2116,10 @@ namespace Dynamo.ViewModels
 
         internal void Pan(object parameter)
         {
-            Debug.WriteLine(string.Format("Offset: {0},{1}, Zoom: {2}", model.CurrentWorkspace.X, model.CurrentWorkspace.Y, model.CurrentWorkspace.Zoom));
+            Debug.WriteLine(string.Format("Offset: {0},{1}, Zoom: {2}", CurrentSpaceViewModel.X, CurrentSpaceViewModel.Y, currentWorkspaceViewModel.Zoom));
             var panType = parameter.ToString();
             double pan = 10;
-            var pt = new Point2D(model.CurrentWorkspace.X, model.CurrentWorkspace.Y);
+            var pt = new Point2D(CurrentSpaceViewModel.X, CurrentSpaceViewModel.Y);
 
             switch (panType)
             {

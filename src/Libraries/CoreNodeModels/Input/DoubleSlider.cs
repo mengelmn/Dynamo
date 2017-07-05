@@ -8,6 +8,7 @@ using Dynamo.Graph;
 using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
 using ProtoCore.AST.AssociativeAST;
+using Newtonsoft.Json;
 
 namespace CoreNodeModels.Input
 {
@@ -15,11 +16,36 @@ namespace CoreNodeModels.Input
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
     [NodeDescription("DoubleSliderNodeDescription", typeof(Properties.Resources))]
     [NodeSearchTags("DoubleSliderSearchTags", typeof(Properties.Resources))]
+    [OutPortTypes("number")]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
     [AlsoKnownAs("DSCoreNodesUI.Input.DoubleSlider")]
     public class DoubleSlider : SliderBase<double>
     {
+        /// <summary>
+        /// The NodeType property provides a name which maps to the 
+        /// server type for the node. This property should only be
+        /// used for serialization. 
+        /// </summary>
+        public override string NodeType
+        {
+            get
+            {
+                return "FloatRangeInputNode";
+            }
+        }
+
+        [JsonConstructor]
+        private DoubleSlider(IEnumerable<PortModel> inPorts,
+            IEnumerable<PortModel> outPorts): base(inPorts, outPorts)
+        {
+            Min = 0;
+            Max = 100;
+            Step = 0.1;
+            Value = 1;
+            ShouldDisplayPreviewCore = false;
+        }
+
         public DoubleSlider()
         {
             Min = 0;
@@ -138,7 +164,7 @@ namespace Dynamo.Nodes
 {
     public class DoubleSlider
     {
-        [NodeMigration(@from: "0.7.5.0")]
+        [NodeMigration(version: "0.7.5.0")]
         public static NodeMigrationData Migrate_0750(NodeMigrationData data)
         {
             var migrationData = new NodeMigrationData(data.Document);

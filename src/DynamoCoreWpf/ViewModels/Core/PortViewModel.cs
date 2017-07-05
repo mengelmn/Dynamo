@@ -31,7 +31,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         public string ToolTipContent
         {
-            get { return _port.ToolTipContent; }
+            get { return _port.ToolTip; }
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         public bool IsConnected
         {
-            get { return _port.IsConnected; }
+            get { return _port.Owner.InPorts[_port.Index].IsConnected; }
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         public bool DefaultValueEnabled
         {
-            get { return _port.DefaultValueEnabled; }
+            get { return _port.DefaultValue != null; }
         }
 
         /// <summary>
@@ -118,13 +118,13 @@ namespace Dynamo.ViewModels
         /// <summary>
         /// IsHitTestVisible property gets a value that declares whether 
         /// a Snapping rectangle can possibly be returned as a hit test result.
-        /// When ActiveConnector is not null, Snapping rectangle handles click events.
-        /// When ActiveConnector is null, Snapping rectangle does not handle click events 
+        /// When FirstActiveConnector is not null, Snapping rectangle handles click events.
+        /// When FirstActiveConnector is null, Snapping rectangle does not handle click events 
         /// and user can "click though invisible snapping area".
         /// </summary>
         public bool IsHitTestVisible
         {
-            get { return _node.WorkspaceViewModel.ActiveConnector != null; }
+            get { return _node.WorkspaceViewModel.FirstActiveConnector != null; }
         }
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace Dynamo.ViewModels
         /// </summary>
         public bool ShouldKeepListStructure
         {
-            get { return _port.ShouldKeepListStructure; }
+            get { return _port.KeepListStructure; }
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace Dynamo.ViewModels
         {
             switch (e.PropertyName)
             {
-                case "ToolTipContent":
+                case "ToolTip":
                     RaisePropertyChanged("ToolTipContent");
                     break;
                 case "PortType":
@@ -268,8 +268,8 @@ namespace Dynamo.ViewModels
                 case "Center":
                     RaisePropertyChanged("Center");
                     break;
-                case "DefaultValueEnabled":
-                    RaisePropertyChanged("DefaultValueEnabled");
+                case "DefaultValue":
+                    RaisePropertyChanged("DefaultValue");
                     break;
                 case "UsingDefaultValue":
                     RaisePropertyChanged("UsingDefaultValue");
@@ -283,7 +283,7 @@ namespace Dynamo.ViewModels
                 case "Level":
                     RaisePropertyChanged("Level");
                     break;
-                case "ShouldKeepListStructure":
+                case "KeepListStructure":
                     RaisePropertyChanged("ShouldKeepListStructure");
                     break;
             }

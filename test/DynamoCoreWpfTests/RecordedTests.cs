@@ -997,8 +997,8 @@ namespace DynamoCoreWpfTests
             var group = workspace.Annotations.First();
 
             // Should contain only 1 NodeModel
-            Assert.AreEqual(1, group.SelectedModels.Count());
-            Assert.IsTrue(group.SelectedModels.Any(m => m.GUID == Guid.Parse("7dc3b638-284f-4296-a793-8185ef42cd71")));
+            Assert.AreEqual(1, group.Nodes.Count());
+            Assert.IsTrue(group.Nodes.Any(m => m.GUID == Guid.Parse("7dc3b638-284f-4296-a793-8185ef42cd71")));
         }
 
         [Test, RequiresSTA]
@@ -1011,6 +1011,134 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(false, workspace.Connectors.Any());
         }
 
+        /// <summary>
+        /// The following tests exercise the following steps:
+        /// 
+        /// 1. Create two number nodes and one add node
+        /// 2. Connect the first number node to the two input ports of the add node (2 connectors)
+        /// 3. Reconnect the 2 wires to the second number node using shift + click
+        /// 
+        /// </summary>
+        [Test, RequiresSTA]
+        public void TestShiftReconnections()
+        {
+            RunCommandsFromFile("TestShiftReconnections.xml");
+
+            Assert.AreEqual(3, workspace.Nodes.Count()); // 2 number nodes + 1 add node
+            Assert.AreEqual(2, workspace.Connectors.Count()); // 2 connections from output port of one number node to 2 input ports of the add node
+            AssertPreviewValue("b4df09e1-0041-4e4c-b417-325f27224e6c", 5.0);
+        }
+
+        [Test, RequiresSTA]
+        public void TestShiftReconnectionsUndo()
+        {
+            RunCommandsFromFile("TestShiftReconnectionsUndo.xml");
+
+            //do undo to obtain previous connections
+            Assert.AreEqual(3, workspace.Nodes.Count());
+            Assert.AreEqual(2, workspace.Connectors.Count());
+            AssertPreviewValue("7552b4cd-13b2-4921-aff8-682ec0dfd6fb", 2.0);
+        }
+
+        [Test, RequiresSTA]
+        public void TestShiftReconnectionsUndoRedo()
+        {
+            RunCommandsFromFile("TestShiftReconnectionsUndoRedo.xml");
+
+            //do undo and redo once each
+            Assert.AreEqual(3, workspace.Nodes.Count());
+            Assert.AreEqual(2, workspace.Connectors.Count());
+            AssertPreviewValue("837d3ed0-b8f5-408d-a16d-ed7094a14217", 5.0);
+        }
+
+        /// <summary>
+        /// The following tests exercise the following steps:
+        /// 
+        /// 1. Create one number node and one add node
+        /// 2. Connect the number node to the two input ports of the add node (2 connectors)
+        /// 3. Shift + click on the output port of number node, then click anywhere on the canvas to remove the two connectors
+        /// 
+        /// </summary>
+        [Test, RequiresSTA]
+        public void TestShiftReconnectionsCancel()
+        {
+            RunCommandsFromFile("TestShiftReconnectionsCancel.xml");
+
+            Assert.AreEqual(2, workspace.Nodes.Count());
+            Assert.AreEqual(0, workspace.Connectors.Count()); //reconnections are cancelled; connectors are removed from workspace
+        }
+        
+        /// <summary>
+        /// The following test exercises the following steps:
+        /// 
+        /// 1. Create one number node with value "2.000"
+        /// 2. Create one add node and one subtract node
+        /// 3. Use ctrl + click to connect the number node to the 4 inputs of add and subtract nodes
+        /// 
+        /// </summary>
+        [Test, RequiresSTA]
+        public void TestCtrlConnections()
+        {
+            RunCommandsFromFile("TestCtrlConnections.xml");
+            Assert.AreEqual(3, workspace.Nodes.Count()); // 1 number nodes + 1 add node + 1 subtract node
+            Assert.AreEqual(4, workspace.Connectors.Count());
+
+            AssertPreviewValue("a7eb8e17-5ceb-4e3f-a971-d20f12899821", 4.0); // value of the add node (2+2)
+            AssertPreviewValue("6cac23b8-8f50-4f9b-9bd9-128701d88860", 0.0); // value of the subtract node (2-2)
+        }
+        
+        /// <summary>
+        /// The following two tests exercise the following steps:
+        /// 
+        /// 1. Create two number nodes with values "2.000" and "5.000"
+        /// 2. Create one add node and one subtract node
+        /// 3. Use ctrl + click to connect "2.000" to the add and subtract nodes
+        /// 4. Use ctrl + click to connect "5.000" to the add and subtract nodes
+        /// 
+        /// </summary>
+        [Test, RequiresSTA]
+        public void TestCtrlConnectionsUndo()
+        {
+            RunCommandsFromFile("TestCtrlConnectionsUndo.xml");
+            Assert.AreEqual(4, workspace.Nodes.Count()); // 2 number nodes + 1 add node + 1 subtract node
+            Assert.AreEqual(4, workspace.Connectors.Count());
+
+            // Undo 4 times to restore the connections
+            AssertPreviewValue("cb84f91e-8856-4b2b-afe8-23cad5d6c111", 4.0); // value of the add node (2+2)
+            AssertPreviewValue("511760d9-1a05-41a8-bcc8-8856a95b1df0", 0.0); // value of the subtract node (2-2)
+        }
+
+        [Test, RequiresSTA]
+        public void TestCtrlConnectionsUndoRedo()
+        {
+            RunCommandsFromFile("TestCtrlConnectionsUndoRedo.xml");
+            Assert.AreEqual(4, workspace.Nodes.Count()); // 2 number nodes + 1 add node + 1 subtract node
+            Assert.AreEqual(4, workspace.Connectors.Count());
+
+            // Undo 4 times and redo 4 times
+            AssertPreviewValue("b63628be-4f75-4335-be66-f57ec0698b4d", 10.0); // value of the add node (5+5)
+            AssertPreviewValue("e59a6337-51a0-44e9-aacb-894492530aba", 0.0); // value of the subtract node (5-5)
+        }
+        
+        /// <summary>
+        /// The following tests exercise the following steps:
+        /// 
+        /// 1. Create one number node and one Point.ByCoordinates node
+        /// 2. Connect the number node to x and y input ports
+        /// 3. Grab the connector from y input port and hit undo
+        /// 
+        /// </summary>
+        [Test, RequiresSTA]
+        public void TestReconnectionUndo()
+        {
+            RunCommandsFromFile("TestReconnectionUndo.xml");
+
+            Assert.AreEqual(2, workspace.Nodes.Count());
+
+            // After hitting undo, the connector should be placed back to y input port.
+            // Hence there are two connectors: one from number node to x, and another one to y.
+            Assert.AreEqual(2, workspace.Connectors.Count()); 
+        }
 
         #endregion
 
@@ -1132,18 +1260,18 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(2, cbn.InPorts.Count);
 
             //CBN OutPut Ports 
-            //    > ToolTipContent stores name of variable
+            //    > ToolTip stores name of variable
             //    > Margina thickness is for height.(is a multiple of 20, except for the first)
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
-            Assert.AreEqual("b", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("b", cbn.OutPorts[1].ToolTip);
             Assert.IsTrue(Math.Abs(cbn.OutPorts[1].MarginThickness.Top - codeBlockPortHeight) <= tolerance);
 
-            Assert.AreEqual("c", cbn.OutPorts[2].ToolTipContent);
+            Assert.AreEqual("c", cbn.OutPorts[2].ToolTip);
             Assert.IsTrue(Math.Abs(cbn.OutPorts[2].MarginThickness.Top - 3*codeBlockPortHeight) <= tolerance);
 
-            Assert.AreEqual("d", cbn.OutPorts[3].ToolTipContent);
+            Assert.AreEqual("d", cbn.OutPorts[3].ToolTip);
             Assert.IsTrue(Math.Abs(cbn.OutPorts[3].MarginThickness.Top - codeBlockPortHeight) <= tolerance);
 
             //CBN Input Ports
@@ -1237,10 +1365,10 @@ namespace DynamoCoreWpfTests
             Assert.AreNotEqual(ElementState.Error, cbn.State);
             Assert.AreEqual(2, cbn.OutPorts.Count);
 
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(2, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("c", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("c", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(9, cbn.OutPorts[1].LineIndex);
         }
 
@@ -1547,7 +1675,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
         }
@@ -1569,7 +1697,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
         }
@@ -1610,9 +1738,8 @@ namespace DynamoCoreWpfTests
             var cbn = GetNode("fc209d2f-1724-4485-bde4-92670802aaa3") as CodeBlockNodeModel;
             Assert.NotNull(cbn);
 
-            Assert.AreEqual(2, cbn.InPortData.Count);
-            Assert.AreEqual("a", cbn.InPortData[0].ToolTipString);
-            Assert.AreEqual("b", cbn.InPortData[1].ToolTipString);
+            Assert.AreEqual(1, cbn.InPorts.Count);
+            Assert.AreEqual("b", cbn.InPorts[0].ToolTip);
         }
 
         [Test, RequiresSTA]
@@ -1698,7 +1825,7 @@ namespace DynamoCoreWpfTests
             RunCommandsFromFile("Defect_MAGN_581_DS.xml");
 
             Assert.AreEqual(2, workspace.Nodes.Count());
-            Assert.AreEqual(1, workspace.Connectors.Count());
+            Assert.AreEqual(0, workspace.Connectors.Count());
         }
 
         [Test, RequiresSTA]
@@ -1773,13 +1900,13 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
-            Assert.AreEqual("b", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("b", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[1].MarginThickness.Top);
 
-            Assert.AreEqual("c", cbn.OutPorts[2].ToolTipContent);
+            Assert.AreEqual("c", cbn.OutPorts[2].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[2].MarginThickness.Top);
 
         }
@@ -1806,7 +1933,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(1, cbn.OutPorts[0].LineIndex);
         }
 
@@ -1832,18 +1959,15 @@ namespace DynamoCoreWpfTests
             //Check the CBN for input and output ports count
             var cbn = GetNode("c9929987-69c8-42bd-9cda-04ef90d029cb") as CodeBlockNodeModel;
             Assert.AreNotEqual(ElementState.Error, cbn.State);
-            Assert.AreEqual(3, cbn.OutPorts.Count);
+            Assert.AreEqual(2, cbn.OutPorts.Count);
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a[0]", cbn.OutPorts[0].ToolTipContent);
-            Assert.AreEqual(1, cbn.OutPorts[0].LineIndex);
+            Assert.AreEqual("b", cbn.OutPorts[0].ToolTip);
+            Assert.AreEqual(3, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("b", cbn.OutPorts[1].ToolTipContent);
-            Assert.AreEqual(3, cbn.OutPorts[1].LineIndex);
-
-            Assert.AreEqual("a", cbn.OutPorts[2].ToolTipContent);
-            Assert.AreEqual(5, cbn.OutPorts[2].LineIndex);
+            Assert.AreEqual("a", cbn.OutPorts[1].ToolTip);
+            Assert.AreEqual(5, cbn.OutPorts[1].LineIndex);
         }
 
         [Test, RequiresSTA]
@@ -1869,10 +1993,10 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("c", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("c", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(2, cbn.OutPorts[1].LineIndex);
 
             var connector = cbn.OutPorts[1].Connectors[0] as ConnectorModel;
@@ -1901,7 +2025,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(2, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
 
             //Out ports with temporary tooltips.
@@ -1931,10 +2055,10 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("b", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("b", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(3, cbn.OutPorts[1].LineIndex);
         }
 
@@ -1960,17 +2084,17 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(2, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
 
             Assert.AreEqual(2, cbn.OutPorts[1].LineIndex); // Random tool-tip.
 
-            Assert.AreEqual("d", cbn.OutPorts[2].ToolTipContent);
+            Assert.AreEqual("d", cbn.OutPorts[2].ToolTip);
             Assert.AreEqual(4, cbn.OutPorts[2].LineIndex);
 
             Assert.AreEqual(6, cbn.OutPorts[3].LineIndex); // Random tool-tip.
 
-            Assert.AreEqual("h", cbn.OutPorts[4].ToolTipContent);
+            Assert.AreEqual("h", cbn.OutPorts[4].ToolTip);
             Assert.AreEqual(8, cbn.OutPorts[4].LineIndex);
         }
 
@@ -1996,7 +2120,6 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(1, cbn.InPorts.Count);
 
             //Check the position of ports
-            //Assert.AreEqual("Statement Output", cbn.OutPorts[0].ToolTipContent);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
         }
 
@@ -2013,21 +2136,12 @@ namespace DynamoCoreWpfTests
             //Check the CBN for input and output ports count
             var cbn = GetNode("3c7c3458-70be-4588-b162-b1099cf30ebc") as CodeBlockNodeModel;
             Assert.AreNotEqual(ElementState.Error, cbn.State);
-            Assert.AreEqual(4, cbn.OutPorts.Count);
+            Assert.AreEqual(1, cbn.OutPorts.Count);
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
-
-            Assert.AreEqual("a[0]", cbn.OutPorts[1].ToolTipContent);
-            Assert.AreEqual(1, cbn.OutPorts[1].LineIndex);
-
-            Assert.AreEqual("a[1]", cbn.OutPorts[2].ToolTipContent);
-            Assert.AreEqual(2, cbn.OutPorts[2].LineIndex);
-
-            Assert.AreEqual("a[2]", cbn.OutPorts[3].ToolTipContent);
-            Assert.AreEqual(3, cbn.OutPorts[3].LineIndex);
         }
 
         [Test, RequiresSTA]
@@ -2042,17 +2156,17 @@ namespace DynamoCoreWpfTests
 
             //Check the CBN for input and output ports count
             var cbn = ViewModel.Model.CurrentWorkspace.Nodes.OfType<CodeBlockNodeModel>()
-                                                            .Where(c => c.InPortData.Count == 2)
+                                                            .Where(c => c.InPorts.Count == 2)
                                                             .First();
             Assert.AreNotEqual(ElementState.Error, cbn.State);
             Assert.AreEqual(2, cbn.OutPorts.Count);
             Assert.AreEqual(2, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("vector1", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("vector1", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
-            Assert.AreEqual("vector2", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("vector2", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[1].MarginThickness.Top);
         }
 
@@ -2073,10 +2187,8 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            //Assert.AreEqual("t_2", cbn.OutPorts[0].ToolTipContent);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
 
-            //Assert.AreEqual("t_1", cbn.OutPorts[1].ToolTipContent);
             Assert.AreEqual(0, cbn.OutPorts[1].MarginThickness.Top);
 
         }
@@ -2098,7 +2210,7 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].MarginThickness.Top);
         }
 
@@ -2175,10 +2287,10 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports and their names
-            Assert.AreEqual("x", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("x", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(0, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("y", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("y", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(3, cbn.OutPorts[1].LineIndex);
         }
 
@@ -2199,10 +2311,10 @@ namespace DynamoCoreWpfTests
             Assert.AreEqual(0, cbn.InPorts.Count);
 
             //Check the position of ports and their names
-            Assert.AreEqual("a", cbn.OutPorts[0].ToolTipContent);
+            Assert.AreEqual("a", cbn.OutPorts[0].ToolTip);
             Assert.AreEqual(2, cbn.OutPorts[0].LineIndex);
 
-            Assert.AreEqual("b", cbn.OutPorts[1].ToolTipContent);
+            Assert.AreEqual("b", cbn.OutPorts[1].ToolTip);
             Assert.AreEqual(5, cbn.OutPorts[1].LineIndex);
         }
 
@@ -3317,7 +3429,7 @@ namespace DynamoCoreWpfTests
 
                     //Check the CBN for input/output ports
                     Assert.AreNotEqual(ElementState.Error, cbn.State);
-                    Assert.AreEqual(0, cbn.OutPorts.Count);
+                    Assert.AreEqual(1, cbn.OutPorts.Count);
                     Assert.AreEqual(0, cbn.InPorts.Count);
 
                 }
@@ -5313,10 +5425,31 @@ namespace DynamoCoreWpfTests
                     case "ChangeName1":
                     case "ChangeName2":
                     case "ChangeName4":
+                    case "ChangeName3":
                         AssertPreviewValue(nodeGuid, new object[] { 1, 2, 3 });
                         break;
-                    case "ChangeName3":
-                        AssertPreviewValue(nodeGuid, null);
+                    default:
+                        break;
+                }
+            });
+        }
+
+        [Test]
+        public void MAGN9507()
+        {
+            // a = 1; ----> x = a; x = x + 1;
+            // a = 2;
+
+            var nodeGuid = "f00bc4f2-c20b-48be-a45b-cc13432db328";
+            RunCommandsFromFile("regress9507.xml", (commandTag) =>
+            {
+                switch (commandTag)
+                {
+                    case "FirstRun":
+                        AssertPreviewValue(nodeGuid, 2);
+                        break;
+                    case "SecondRun":
+                        AssertPreviewValue(nodeGuid, 3);
                         break;
                     default:
                         break;

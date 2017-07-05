@@ -518,6 +518,7 @@ namespace Dynamo.Controls
             dynamoViewModel.RequestManagePackagesDialog += DynamoViewModelRequestShowInstalledPackages;
             dynamoViewModel.RequestPackageManagerSearchDialog += DynamoViewModelRequestShowPackageManagerSearch;
             dynamoViewModel.RequestPackagePathsDialog += DynamoViewModelRequestPackagePaths;
+            dynamoViewModel.RequestScaleFactorDialog += DynamoViewModelChangeScaleFactor;
 
             #endregion
 
@@ -589,7 +590,25 @@ namespace Dynamo.Controls
             };
             BackgroundPreview.SetBinding(VisibilityProperty, vizBinding);
             TrackStartupAnalytics();
+
+            // In native host scenario (e.g. Revit), the "Application.Current" will be "null". Therefore, the InCanvasSearchControl.OnRequestShowInCanvasSearch
+            // will not work. Instead, we have to check if the Owner Window (DynamoView) is deactivated or not.  
+            if (Application.Current == null)
+            {
+                this.Deactivated += (s, args) => { HidePopupWhenWindowDeactivated(); };
+            }
         }
+
+        /// <summary>
+        /// Close Popup when the Dynamo window is not in the foreground.
+        /// </summary>
+
+        private void HidePopupWhenWindowDeactivated()
+        {
+            var workspace = this.ChildOfType<WorkspaceView>();
+            if(workspace != null)
+                workspace.HidePopUp();
+         }
 
         private void TrackStartupAnalytics()
         {
@@ -742,6 +761,25 @@ namespace Dynamo.Controls
             var viewModel = new PackagePathViewModel(packageLoader,loadPackagesParams,customNodeManager);
             var view = new PackagePathView(viewModel) { Owner = this };
             view.ShowDialog();
+        }
+
+        private void DynamoViewModelChangeScaleFactor(object sender, EventArgs e)
+        {
+            var view = new Prompts.ChangeScaleFactorPrompt(dynamoViewModel.ScaleFactorLog) { Owner = this };
+            if (view.ShowDialog() == true)
+            {
+                if (dynamoViewModel.ScaleFactorLog != view.ScaleValue)
+                {
+                    dynamoViewModel.ScaleFactorLog = view.ScaleValue;
+                    dynamoViewModel.CurrentSpace.HasUnsavedChanges = true;
+                    
+                    Log(String.Format("Geometry working range changed to {0} ({1}, {2})", 
+                        view.ScaleRange.Item1, view.ScaleRange.Item2, view.ScaleRange.Item3));
+
+                    var allNodes = dynamoViewModel.HomeSpace.Nodes;
+                    dynamoViewModel.HomeSpace.MarkNodesAsModifiedAndRequestRun(allNodes, forceExecute: true);
+                }
+            }
         }
 
         private InstalledPackagesView _installedPkgsView;
@@ -1177,8 +1215,8 @@ namespace Dynamo.Controls
                 if (workspace_index == -1) return;
 
                 var workspace_vm = dynamoViewModel.Workspaces[workspace_index];
-                workspace_vm.Model.OnCurrentOffsetChanged(this, new PointEventArgs(new Point2D(workspace_vm.Model.X, workspace_vm.Model.Y)));
-                workspace_vm.Model.OnZoomChanged(this, new ZoomEventArgs(workspace_vm.Zoom));
+                workspace_vm.Model.OnCurrentOffsetChanged(this, new PointEventArgs(new Point2D(workspace_vm.X, workspace_vm.Y)));
+                workspace_vm.OnZoomChanged(this, new ZoomEventArgs(workspace_vm.Zoom));
 
                 ToggleWorkspaceTabVisibility(WorkspaceTabs.SelectedIndex);
             }
@@ -1607,6 +1645,11 @@ namespace Dynamo.Controls
             collapsedSidebar.Visibility = Visibility.Visible;
         }
 
+        private void OnSettingsSubMenuOpened(object sender, RoutedEventArgs e)
+        {
+            this.ChangeScaleFactorMenu.IsEnabled = !dynamoViewModel.ShowStartPage;
+        }
+
         private void Workspace_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             //http://stackoverflow.com/questions/4474670/how-to-catch-the-ending-resize-window
@@ -1684,6 +1727,11 @@ namespace Dynamo.Controls
         private void Log(string message)
         {
             Log(LogMessage.Info(message));
+        }
+
+        private void Window_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            HidePopupWhenWindowDeactivated();
         }
 
         public void Dispose()

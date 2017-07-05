@@ -296,6 +296,105 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to To ensure accurate geometry rendering and calculation, select the range of geometry sizes that you will be working on:.
+        /// </summary>
+        public static string ChangeScaleFactorPromptCaptionText {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptCaptionText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Numerical range shown here denote numbers in the following unit:.
+        /// </summary>
+        public static string ChangeScaleFactorPromptDescriptionBox {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptDescriptionBox", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Use this working range to model in values that fall between {0} to {1} units.
+        /// </summary>
+        public static string ChangeScaleFactorPromptDescriptionContent {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptDescriptionContent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Default Setting:.
+        /// </summary>
+        public static string ChangeScaleFactorPromptDescriptionDefaultSetting {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptDescriptionDefaultSetting", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Centimeters (cm).
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitCm {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitCm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Meters (m).
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitM {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Millimeters (mm).
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitMm {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitMm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} cm.
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitsNumberFormatCm {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitsNumberFormatCm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} m.
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitsNumberFormatM {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitsNumberFormatM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} mm.
+        /// </summary>
+        public static string ChangeScaleFactorPromptUnitsNumberFormatMm {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptUnitsNumberFormatMm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Geometry Working Range.
+        /// </summary>
+        public static string ChangeScaleFactorPromptWindowTitle {
+            get {
+                return ResourceManager.GetString("ChangeScaleFactorPromptWindowTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Compact.
         /// </summary>
         public static string CompactLayoutTitle {
@@ -494,7 +593,7 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to New Node F_rom Selection.
+        ///   Looks up a localized string similar to Create Custom Node.
         /// </summary>
         public static string ContextMenuNodesFromSelection {
             get {
@@ -1018,20 +1117,20 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to _Create Custom Node.
+        /// </summary>
+        public static string DynamoViewEditMenuCreateCustomNode {
+            get {
+                return ResourceManager.GetString("DynamoViewEditMenuCreateCustomNode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to _Create Group.
         /// </summary>
         public static string DynamoViewEditMenuCreateGroup {
             get {
                 return ResourceManager.GetString("DynamoViewEditMenuCreateGroup", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to _Create Node From Selection.
-        /// </summary>
-        public static string DynamoViewEditMenuCreateNodeFromSelection {
-            get {
-                return ResourceManager.GetString("DynamoViewEditMenuCreateNodeFromSelection", resourceCulture);
             }
         }
         
@@ -1252,6 +1351,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Open Dynamo Dictionary.
+        /// </summary>
+        public static string DynamoViewHelpDictionary {
+            get {
+                return ResourceManager.GetString("DynamoViewHelpDictionary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Help.
         /// </summary>
         public static string DynamoViewHelpMenu {
@@ -1423,7 +1531,7 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Enable T-Spline nodes.
+        ///   Looks up a localized string similar to Enable T-Spline nodes (requires relaunch of Dynamo).
         /// </summary>
         public static string DynamoViewSettingEnableTSplineNodes {
             get {
@@ -1765,6 +1873,24 @@ namespace Dynamo.Wpf.Properties {
         public static string DynamoViewSettingShowRunPreview {
             get {
                 return ResourceManager.GetString("DynamoViewSettingShowRunPreview", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Geometry Scaling....
+        /// </summary>
+        public static string DynamoViewSettingsMenuChangeScaleFactor {
+            get {
+                return ResourceManager.GetString("DynamoViewSettingsMenuChangeScaleFactor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Isolate Selected Geometry.
+        /// </summary>
+        public static string DynamoViewSettingsMenuIsolationMode {
+            get {
+                return ResourceManager.GetString("DynamoViewSettingsMenuIsolationMode", resourceCulture);
             }
         }
         
@@ -3279,6 +3405,15 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to See more on the Dynamo Dictionary....
+        /// </summary>
+        public static string NodeHelpWindowDynamoDictionary {
+            get {
+                return ResourceManager.GetString("NodeHelpWindowDynamoDictionary", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to CATEGORY.
         /// </summary>
         public static string NodeHelpWindowNodeCategory {
@@ -4336,11 +4471,47 @@ namespace Dynamo.Wpf.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Apply Changes.
+        /// </summary>
+        public static string RerunButton {
+            get {
+                return ResourceManager.GetString("RerunButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rerun the graph..
+        /// </summary>
+        public static string RerunButtonToolTip {
+            get {
+                return ResourceManager.GetString("RerunButtonToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Run completed..
         /// </summary>
         public static string RunCompletedMessage {
             get {
                 return ResourceManager.GetString("RunCompletedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run completed with warnings on setting new working range..
+        /// </summary>
+        public static string RunCompletedWithScaleChangeAndWarningsMessage {
+            get {
+                return ResourceManager.GetString("RunCompletedWithScaleChangeAndWarningsMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run completed with new working range..
+        /// </summary>
+        public static string RunCompletedWithScaleChangeMessage {
+            get {
+                return ResourceManager.GetString("RunCompletedWithScaleChangeMessage", resourceCulture);
             }
         }
         
@@ -4359,6 +4530,15 @@ namespace Dynamo.Wpf.Properties {
         public static string RunStartedMessage {
             get {
                 return ResourceManager.GetString("RunStartedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Run started with new working range....
+        /// </summary>
+        public static string RunStartedWithScaleChangeMessage {
+            get {
+                return ResourceManager.GetString("RunStartedWithScaleChangeMessage", resourceCulture);
             }
         }
         
@@ -4422,6 +4602,42 @@ namespace Dynamo.Wpf.Properties {
         public static string SaveWorkbenToImageDialogTitle {
             get {
                 return ResourceManager.GetString("SaveWorkbenToImageDialogTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Extra large.
+        /// </summary>
+        public static string ScalingExtraLargeButton {
+            get {
+                return ResourceManager.GetString("ScalingExtraLargeButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Large.
+        /// </summary>
+        public static string ScalingLargeButton {
+            get {
+                return ResourceManager.GetString("ScalingLargeButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Medium.
+        /// </summary>
+        public static string ScalingMediumButton {
+            get {
+                return ResourceManager.GetString("ScalingMediumButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Small.
+        /// </summary>
+        public static string ScalingSmallButton {
+            get {
+                return ResourceManager.GetString("ScalingSmallButton", resourceCulture);
             }
         }
         
@@ -4593,6 +4809,15 @@ namespace Dynamo.Wpf.Properties {
         public static string StartPageDiscussionForum {
             get {
                 return ResourceManager.GetString("StartPageDiscussionForum", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dynamo Dictionary.
+        /// </summary>
+        public static string StartPageDynamoDictionary {
+            get {
+                return ResourceManager.GetString("StartPageDynamoDictionary", resourceCulture);
             }
         }
         

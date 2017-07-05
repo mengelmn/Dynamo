@@ -9,6 +9,7 @@ using Dynamo.Graph.Nodes;
 using Dynamo.Migration;
 using ProtoCore.AST.AssociativeAST;
 using CoreNodeModels.Properties;
+using Newtonsoft.Json;
 
 namespace CoreNodeModels.Input
 {
@@ -16,11 +17,37 @@ namespace CoreNodeModels.Input
     [NodeCategory(BuiltinNodeCategories.CORE_INPUT)]
     [NodeDescription("IntegerSliderNodeDescription", typeof(Resources))]
     [NodeSearchTags("IntegerSliderSearchTags", typeof(Resources))]
+    [InPortTypes("UI Input")]
+    [OutPortTypes("int")]
     [SupressImportIntoVM]
     [IsDesignScriptCompatible]
     [AlsoKnownAs("DSCoreNodesUI.Input.IntegerSlider")]
     public class IntegerSlider : SliderBase<int>
     {
+        /// <summary>
+        /// The NodeType property provides a name which maps to the 
+        /// server type for the node. This property should only be
+        /// used for serialization. 
+        /// </summary>
+        public override string NodeType
+        {
+            get
+            {
+                return "IntegerRangeInputNode";
+            }
+        }
+
+        [JsonConstructor]
+        private IntegerSlider(IEnumerable<PortModel> inPorts,
+            IEnumerable<PortModel> outPorts): base(inPorts, outPorts)
+        {
+            Min = 0;
+            Max = 100;
+            Step = 1;
+            Value = 1;
+            ShouldDisplayPreviewCore = false;
+        }
+
         public IntegerSlider()
         {
             RegisterAllPorts();
@@ -157,7 +184,7 @@ namespace Dynamo.Nodes
 {
     public class IntegerSlider
     {
-        [NodeMigration(@from: "0.7.5.0")]
+        [NodeMigration(version: "0.7.5.0")]
         public static NodeMigrationData Migrate_0750(NodeMigrationData data)
         {
             var migrationData = new NodeMigrationData(data.Document);

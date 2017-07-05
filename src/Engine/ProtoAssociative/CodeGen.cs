@@ -1961,6 +1961,7 @@ namespace ProtoAssociative
                 {
                     AssociativeNode lastNode = DFSEmitSplitAssign_AST(bnode.RightNode, ref astList);
                     var newBNode = AstFactory.BuildBinaryExpression(bnode.LeftNode, lastNode, Operator.assign);
+                    newBNode.OriginalAstID = bnode.OriginalAstID;
 
                     astList.Add(newBNode);
                     return bnode.LeftNode;
@@ -5464,6 +5465,8 @@ namespace ProtoAssociative
 
                             if (dimensions > 0)
                             {
+                                string message = String.Format(ProtoCore.Properties.Resources.kUnboundIdentifierMsg, t.Value);
+                                buildStatus.LogUnboundVariableWarning(symbolnode, message, core.CurrentDSFileName, t.line, t.col, graphNode);
                                 symbolnode.datatype.rank = dimensions;
                             }
                         }
