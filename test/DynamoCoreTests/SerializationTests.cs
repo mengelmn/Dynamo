@@ -62,10 +62,9 @@ namespace Dynamo.Tests
         internal class WorkspaceComparisonData
         {
             public Guid Guid { get; set; }
+            public string Description { get; set; }
             public int NodeCount { get; set; }
-            public int ConnectorCount { get; set; }
-            public int GroupCount { get; set; }
-            public int NoteCount { get; set; }
+            public int ConnectorCount { get; set; }           
             public Dictionary<Guid,Type> NodeTypeMap { get; set; }
             public Dictionary<Guid,List<object>> NodeDataMap { get; set; }
             public Dictionary<Guid,int> InportCountMap { get; set; }
@@ -75,10 +74,9 @@ namespace Dynamo.Tests
             public WorkspaceComparisonData(WorkspaceModel workspace, EngineController controller)
             {
                 Guid = workspace.Guid;
+                Description = workspace.Description;
                 NodeCount = workspace.Nodes.Count();
-                ConnectorCount = workspace.Connectors.Count();
-                GroupCount = workspace.Annotations.Count();
-                NoteCount = workspace.Notes.Count();
+                ConnectorCount = workspace.Connectors.Count();               
                 NodeTypeMap = new Dictionary<Guid, Type>();
                 NodeDataMap = new Dictionary<Guid, List<object>>();
                 InportCountMap = new Dictionary<Guid, int>();
@@ -127,8 +125,7 @@ namespace Dynamo.Tests
             }
             Assert.AreEqual(a.NodeCount, b.NodeCount, "The workspaces don't have the same number of nodes.");
             Assert.AreEqual(a.ConnectorCount, b.ConnectorCount, "The workspaces don't have the same number of connectors.");
-            Assert.AreEqual(a.GroupCount, b.GroupCount, "The workspaces don't have the same number of groups.");
-            Assert.AreEqual(a.NoteCount, b.NoteCount, "The workspaces don't have the same number of notes.");
+            
             foreach (var kvp in a.InportCountMap)
             {
                 var countA = kvp.Value;
@@ -178,10 +175,12 @@ namespace Dynamo.Tests
             {
                 Assert.Fail("The workspaces don't have the same number of nodes. The json workspace is missing: " + string.Join(",", nodeDiff.Select(i => i.Value.ToString())));
             }
+            Assert.AreEqual(a.Description, b.Description, "The workspaces don't have the same description.");
             Assert.AreEqual(a.NodeCount, b.NodeCount, "The workspaces don't have the same number of nodes.");
             Assert.AreEqual(a.ConnectorCount, b.ConnectorCount, "The workspaces don't have the same number of connectors.");
-            Assert.AreEqual(a.GroupCount, b.GroupCount, "The workspaces don't have the same number of groups.");
-            Assert.AreEqual(a.NoteCount, b.NoteCount, "The workspaces don't have the same number of notes.");
+            //TODO: Annotations / Note tests should be in viewmodel serialization tests.
+           // Assert.AreEqual(a.GroupCount, b.GroupCount, "The workspaces don't have the same number of groups.");
+           // Assert.AreEqual(a.NoteCount, b.NoteCount, "The workspaces don't have the same number of notes.");
             foreach(var kvp in a.InportCountMap)
             {
                 var countA = kvp.Value;
@@ -304,11 +303,12 @@ namespace Dynamo.Tests
 
             var model = CurrentDynamoModel;
             var ws1 = model.CurrentWorkspace;
+            ws1.Description = "TestDescription";
 
             var dummyNodes = ws1.Nodes.Where(n => n is DummyNode);
             if (dummyNodes.Any())
             {
-                Assert.Inconclusive("The Workspace contains dummy nodes for: " + string.Join(",", dummyNodes.Select(n => n.NickName).ToArray()));
+                Assert.Inconclusive("The Workspace contains dummy nodes for: " + string.Join(",", dummyNodes.Select(n => n.Name).ToArray()));
             }
 
             var cbnErrorNodes = ws1.Nodes.Where(n => n is CodeBlockNodeModel && n.State == ElementState.Error);
@@ -341,7 +341,7 @@ namespace Dynamo.Tests
 
             lastExecutionDuration = new TimeSpan();
 
-            var ws2 = Autodesk.Workspaces.Utilities.LoadWorkspaceFromJson(json, model.LibraryServices,
+            var ws2 = WorkspaceModel.FromJson(json, model.LibraryServices,
                 model.EngineController, model.Scheduler, model.NodeFactory, DynamoModel.IsTestMode, false,
                 model.CustomNodeManager);
 
@@ -393,7 +393,7 @@ namespace Dynamo.Tests
             dummyNodes = ws2.Nodes.Where(n => n is DummyNode);
             if (dummyNodes.Any())
             {
-                Assert.Inconclusive("The Workspace contains dummy nodes for: " + string.Join(",", dummyNodes.Select(n => n.NickName).ToArray()));
+                Assert.Inconclusive("The Workspace contains dummy nodes for: " + string.Join(",", dummyNodes.Select(n => n.Name).ToArray()));
             }
 
             var wcd2 = new WorkspaceComparisonData(ws2, CurrentDynamoModel.EngineController);
@@ -448,10 +448,7 @@ namespace Dynamo.Tests
 
         private static string ConvertCurrentWorkspaceToJsonAndSave(DynamoModel model, string filePathBase)
         {
-            var json = Autodesk.Workspaces.Utilities.SaveWorkspaceToJson(model.CurrentWorkspace, model.LibraryServices,
-                model.EngineController, model.Scheduler, model.NodeFactory, DynamoModel.IsTestMode, false,
-                model.CustomNodeManager);
-
+            var json = model.CurrentWorkspace.ToJson(model.EngineController);
             Assert.IsNotNullOrEmpty(json);
 
             var tempPath = Path.GetTempPath();
@@ -474,10 +471,9 @@ namespace Dynamo.Tests
 
         private string ConvertCurrentWorkspaceToNonGuidJsonAndSave(DynamoModel model, string filePathBase)
         {
-            var json = Autodesk.Workspaces.Utilities.SaveWorkspaceToJson(model.CurrentWorkspace, model.LibraryServices,
-                model.EngineController, model.Scheduler, model.NodeFactory, DynamoModel.IsTestMode, false,
-                model.CustomNodeManager);
+            var json = model.CurrentWorkspace.ToJson(model.EngineController);
             var idcount = 0;
+
             //alter the output json so that all node ids are not guids
             foreach(var nodeId in model.CurrentWorkspace.Nodes.Select(x => x.GUID))
             {
